@@ -1,0 +1,17 @@
+target/
+.project
+.classpath
+.checkstyle
+.settings/
+.metadata/
+.factorypath
+*.launch
+.apt_generated/
+.apt_generated_test/
+bin
+
+*.tmp
+*.log
+*~
+*.swp
+
