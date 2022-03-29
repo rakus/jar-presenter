@@ -8,6 +8,8 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.SocketException;
+import java.net.SocketTimeoutException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -20,27 +22,33 @@ import java.util.Properties;
 
 /**
  * The most trivial HTTP server.
- * 
+ *
  * Only serves resources available via classpath. No support for keepalive. No
  * security, nothing.
- * 
+ *
  * @author rks
  *
  */
 public class HttpServerchen implements Closeable {
 
+    private static final Logger LOGGER = new Logger();
+
     private static final String HTTP404_FMT = "<html><head><title>Not Found</title></head>"
             + "<body><p>The requested resource could not be found.</p>"
             + "<tt>%s</tt><p><sub>jar presenter</sub></p></body></html>";
 
+    /** Close socket when client send nothing within 60 seconds. */
+    private static final int SOCKET_TIMEOUT = 60 * 1000;
+
     private final ServerSocket serverSocket;
 
     private final String rootDir;
+
     private final Map<String, String> fileMap;
 
-    public HttpServerchen(String rootDir) throws IOException {
+    public HttpServerchen(final String rootDir) throws IOException {
         // automatically choose an available port
-        serverSocket = new ServerSocket(0);
+        serverSocket = new ServerSocket(8000);
         this.rootDir = rootDir;
         this.fileMap = readMapTable();
     }
@@ -53,10 +61,10 @@ public class HttpServerchen implements Closeable {
         try (InputStream in = this.getClass().getClassLoader()
                 .getResourceAsStream(rootDir + "/jarp-filemap.properties")) {
             if (in != null) {
-                Properties props = new Properties();
+                final Properties props = new Properties();
                 props.load(in);
-                Map<String, String> map = new HashMap<String, String>();
-                for (Map.Entry<Object, Object> entry : props.entrySet()) {
+                final Map<String, String> map = new HashMap<>();
+                for (final Map.Entry<Object, Object> entry : props.entrySet()) {
                     map.put(String.valueOf(entry.getKey()), String.valueOf(entry.getValue()));
                 }
                 return Collections.unmodifiableMap(map);
@@ -74,125 +82,149 @@ public class HttpServerchen implements Closeable {
         readMapTable();
         while (true) {
             final Socket client = serverSocket.accept();
-
             new Thread(() -> handleClient(client)).start();
-
-            // try (Socket client = serverSocket.accept()) {
-            // handleClient(client);
-            // }
         }
     }
 
-    private void handleClient(Socket client) {
+    private void handleClient(final Socket client) {
+
         try {
-            BufferedReader br = new BufferedReader(new InputStreamReader(client.getInputStream()));
+            client.setSoTimeout(SOCKET_TIMEOUT);
+        } catch (final SocketException e) {
+            LOGGER.error("Ignoring setting socket timeout failed: " + e);
+        }
 
-            List<String> lines = new ArrayList<String>();
-            String line;
-            while ((line = br.readLine()) != null) {
-                if (line.isBlank()) {
-                    break;
-                }
-                lines.add(line);
-            }
+        try {
+            final BufferedReader br = new BufferedReader(new InputStreamReader(client.getInputStream()));
 
-            if (lines.size() < 2) {
-                logError("request to short: " + lines);
-                return;
-            }
-
-            String[] requestParts = lines.get(0).split(" ");
-            if (requestParts.length < 3) {
-                logError("Invalid request: " + lines.get(0));
-                return;
-            }
-
-            String method = requestParts[0];
-            String path = requestParts[1];
-            String version = requestParts[2];
-
-            if (version == null || !version.startsWith("HTTP")) {
-                logError("Invalid request: " + lines.get(0));
-                return;
-            }
-
-            String host = lines.get(1).split(" ")[1];
-
-            Map<String, String> headers = new HashMap<>();
-
-            lines.stream().skip(2).forEach(s -> {
-                String name = s.substring(0, s.indexOf(":"));
-                String value = s.substring(s.indexOf(":") + 1).trim();
-                headers.put(name, value);
-            });
-
-            URL url = new URL("http://" + host + path);
-
-            // log(String.format("%s %s headers: %s", method, url, headers.toString()));
-            logRequest(method, url);
-            logHeaders(headers);
-
-            if ("GET".equals(method)) {
-                String fn = "/".equals(url.getPath()) ? "/index.html" : url.getPath();
-
-                log("Serving: " + fn);
-
-                String resource = rootDir + fileMap.getOrDefault(fn, fn);
-
-                // resource = resource.substring(1);
-                String contentType = guessContentType(resource);
-
-                try (InputStream in = this.getClass().getClassLoader().getResourceAsStream(resource)) {
-
-                    if (in != null) {
-                        sendResponse(client, HttpStatus.OK, Collections.emptyMap(), contentType, in);
-                    } else {
-                        // 404
-                        send404Response(client, url);
+            while (true) {
+                final List<String> lines = new ArrayList<>();
+                String line;
+                while ((line = br.readLine()) != null) {
+                    if (line.isBlank()) {
+                        break;
                     }
-                } catch (IOException e) {
-                    log("Error closing response: " + e.toString());
+                    lines.add(line);
                 }
-            } else {
-                sendMethodNotAllowedResponse(client);
+
+                if (line == null) {
+                    return;
+                }
+
+                if (lines.size() < 2) {
+                    LOGGER.error("request to short: " + lines);
+                    return;
+                }
+
+                final HttpRequest.Builder builder = new HttpRequest.Builder();
+
+                final String[] requestParts = lines.get(0).split(" ");
+                if (requestParts.length < 3) {
+                    LOGGER.error("Invalid request: " + lines.get(0));
+                    return;
+                }
+
+                builder.method(requestParts[0]).path(requestParts[1]).version(requestParts[2]);
+
+                builder.host(lines.get(1).split(" ")[1]);
+
+                lines.stream().skip(2).forEach(s -> {
+                    final String name = s.substring(0, s.indexOf(":"));
+                    final String value = s.substring(s.indexOf(":") + 1).trim();
+                    builder.addHeader(name, value);
+                });
+
+                final HttpRequest req = builder.build();
+                LOGGER.request(req);
+
+                if (!"GET".equals(req.getMethod())) {
+                    sendMethodNotAllowedResponse(client);
+                    return;
+                }
+
+                handleRequest(client, builder.build());
+
+                if (!"keep-alive".equals(req.getHeader("Connection"))) {
+                    // No keep-alive -> close
+                    return;
+                }
+
             }
-        } catch (IOException e) {
+        } catch (final SocketException e) {
+            // IGNORED Most likely socket closed by client
+        } catch (final SocketTimeoutException e) {
+            // IGNORED No incoming data for long time. Closing Socket.
+        } catch (final IOException e) {
             e.printStackTrace();
         } finally {
             try {
+                LOGGER.info("Closing socket connection");
                 client.close();
-            } catch (IOException e) {
-                log("Socket close failed: " + e.toString());
+            } catch (final IOException e) {
+                LOGGER.info("Socket close failed: " + e.toString());
             }
 
         }
     }
 
-    private void sendMethodNotAllowedResponse(Socket client) {
-        Map<String, String> headers = new HashMap<String, String>();
+    private void handleRequest(final Socket client, final HttpRequest request) {
+
+        try {
+            final String fn = "/".equals(request.getPath()) ? "/index.html" : request.getPath();
+
+            LOGGER.info("Serving: " + fn);
+
+            final String resource = rootDir + fileMap.getOrDefault(fn, fn);
+
+            try (InputStream in = this.getClass().getClassLoader().getResourceAsStream(resource)) {
+
+                if (in != null) {
+                    sendResponse(client, HttpStatus.OK, Collections.emptyMap(), resource, in);
+                } else {
+                    // 404
+                    send404Response(client, request.getUrl());
+                }
+            } catch (final IOException e) {
+                LOGGER.info("Error closing response: " + e.toString());
+            }
+        } finally {
+            try {
+                client.close();
+            } catch (final IOException e) {
+                LOGGER.info("Socket close failed: " + e.toString());
+            }
+
+        }
+    }
+
+    private void sendMethodNotAllowedResponse(final Socket client) {
+        final Map<String, String> headers = new HashMap<>();
         headers.put("Allow", "GET");
 
         sendResponse(client, HttpStatus.METHOD_NOT_ALLOWED, Collections.emptyMap(), null, null);
     }
 
-    private void send404Response(Socket client, URL url) {
+    private void send404Response(final Socket client, final URL url) {
         sendHtmlResponse(client, HttpStatus.NOT_FOUND, String.format(HTTP404_FMT, url.toString()));
     }
 
-    private void sendHtmlResponse(Socket client, HttpStatus status, String content) {
+    private void sendHtmlResponse(final Socket client, final HttpStatus status, final String content) {
         try (InputStream in = new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8))) {
-            sendResponse(client, status, Collections.emptyMap(), "text/html; charset=utf-8", in);
-        } catch (IOException e) {
-            log("Error creating HTML response: " + e.toString());
+            sendResponse(client, status, Collections.emptyMap(), ".html", in);
+        } catch (final IOException e) {
+            LOGGER.info("Error creating HTML response: " + e.toString());
         }
     }
 
-    private void sendResponse(Socket client, HttpStatus status, Map<String, String> headers, String contentType,
-            InputStream in) {
-        logStatus(status);
+    private void sendResponse(final Socket client, final HttpStatus status, final Map<String, String> headers,
+            final String resource, final InputStream in) {
+
+        final String contentType = guessContentType(resource);
+
+        LOGGER.status(status);
         try (HttpOutputStream clientOutput = new HttpOutputStream(client.getOutputStream())) {
-            clientOutput.println("HTTP/1.0 \r\n" + status);
-            for (Entry<String, String> entry : headers.entrySet()) {
+            clientOutput.println("HTTP/1.1 " + status);
+            for (final Entry<String, String> entry : headers.entrySet()) {
                 clientOutput.println(entry.getKey() + ": " + entry.getValue());
             }
             clientOutput.println("Cache-Control: no-cache, no-store, must-revalidate");
@@ -201,18 +233,19 @@ public class HttpServerchen implements Closeable {
 
             if (in != null) {
                 clientOutput.println("ContentType: " + contentType);
-                clientOutput.println();
-                in.transferTo(clientOutput);
+                // No empty line here, as writeBody adds headers "Content-Length" or
+                // "Transfer-Encoding".
+                clientOutput.writeBody(in);
             }
             clientOutput.println();
             clientOutput.println();
             clientOutput.flush();
-        } catch (IOException e) {
-            log("   response failed: " + e.toString());
+        } catch (final IOException e) {
+            LOGGER.info("   response failed: " + e.toString());
         }
     }
 
-    private String guessContentType(String path) {
+    private String guessContentType(final String path) {
 
         String ext = path.substring(path.lastIndexOf('.') + 1);
         ext = ext.toLowerCase();
@@ -241,47 +274,12 @@ public class HttpServerchen implements Closeable {
         }
     }
 
-    private void logRequest(String method, URL url) {
-        log(String.format("%s %s", method, url));
-    }
-
-    private void logHeaders(Map<String, String> headers) {
-        log(headers.toString());
-    }
-
-    private void logStatus(HttpStatus status) {
-        log("  " + status);
-    }
-
-    private void logError(String message) {
-        logError(message, null);
-    }
-
-    private void logError(String msg, Throwable thr) {
-        System.err.print("ERROR: ");
-        System.err.println(msg);
-        if (thr != null) {
-            thr.printStackTrace();
-        }
-    }
-
-    private void log(String msg) {
-        log(msg, null);
-    }
-
-    private void log(String msg, Throwable thr) {
-        System.out.println(msg);
-        if (thr != null) {
-            thr.printStackTrace(System.out);
-        }
-    }
-
     @Override
     public void close() {
         if (this.serverSocket != null) {
             try {
                 serverSocket.close();
-            } catch (IOException e) {
+            } catch (final IOException e) {
                 e.printStackTrace();
             }
         }

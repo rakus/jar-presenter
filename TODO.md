@@ -4,7 +4,6 @@ Prime Directives:
 * As less code as possible.
 * "Nice to have" is no reason
 
-* Make HttpServerchen more compliant. Support HTTP2 / Keepalive. (Note: Use chunked response)
 * Only allow clients from localhost
 * Simple hand made command line handling
 * Commands to implement:
