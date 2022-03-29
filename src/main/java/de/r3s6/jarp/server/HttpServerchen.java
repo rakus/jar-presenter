@@ -1,4 +1,4 @@
-package de.r3s6.jarp.serve;
+package de.r3s6.jarp.server;
 
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
@@ -35,6 +35,10 @@ public class HttpServerchen implements Closeable {
 
     private static final String HTTP404_FMT = "<html><head><title>Not Found</title></head>"
             + "<body><p>The requested resource could not be found.</p>"
+            + "<tt>%s</tt><p><sub>jar presenter</sub></p></body></html>";
+
+    private static final String HTTP400_FMT = "<html><head><title>Bad Request</title></head>"
+            + "<body><p>The requested resource path is invalid.</p>"
             + "<tt>%s</tt><p><sub>jar presenter</sub></p></body></html>";
 
     /** Close socket when client send nothing within 60 seconds. */
@@ -141,6 +145,10 @@ public class HttpServerchen implements Closeable {
                     return;
                 }
 
+                if (!validatePath(req.getPath())) {
+                    sendBadRequestResponse(client, req.getUrl());
+                }
+
                 handleRequest(client, builder.build());
 
                 if (!"keep-alive".equals(req.getHeader("Connection"))) {
@@ -164,6 +172,21 @@ public class HttpServerchen implements Closeable {
             }
 
         }
+    }
+
+    private boolean validatePath(final String path) {
+        final String[] parts = path.split("[\\/]");
+        int depth = 0;
+
+        for (final String string : parts) {
+            if ("..".equals(string)) {
+                depth--;
+            } else {
+                depth++;
+            }
+        }
+
+        return depth >= 0;
     }
 
     private void handleRequest(final Socket client, final HttpRequest request) {
@@ -201,6 +224,10 @@ public class HttpServerchen implements Closeable {
         headers.put("Allow", "GET");
 
         sendResponse(client, HttpStatus.METHOD_NOT_ALLOWED, Collections.emptyMap(), null, null);
+    }
+
+    private void sendBadRequestResponse(final Socket client, final URL url) {
+        sendHtmlResponse(client, HttpStatus.BAD_REQUEST, String.format(HTTP400_FMT, url.toString()));
     }
 
     private void send404Response(final Socket client, final URL url) {

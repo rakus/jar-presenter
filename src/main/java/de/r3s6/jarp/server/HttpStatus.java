@@ -1,13 +1,14 @@
-package de.r3s6.jarp.serve;
+package de.r3s6.jarp.server;
 
 public enum HttpStatus {
 
-    OK(200, "OK"), NOT_FOUND(404, "Not Found"), METHOD_NOT_ALLOWED(405, "Method Not Allowed");
+    OK(200, "OK"), BAD_REQUEST(400, "Bad Request"), NOT_FOUND(404, "Not Found"),
+    METHOD_NOT_ALLOWED(405, "Method Not Allowed");
 
     private int intValue;
     private String phrase;
 
-    HttpStatus(int i, String string) {
+    HttpStatus(final int i, final String string) {
         intValue = i;
         phrase = string;
     }

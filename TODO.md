@@ -9,6 +9,5 @@ Prime Directives:
     * `build` to create a new jar-presentation jar.
 
 * Expand content type detection. Maybe also look into the first bytes to transfer.
-* prevent '../' attacks
 
 

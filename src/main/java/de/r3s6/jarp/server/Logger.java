@@ -1,4 +1,4 @@
-package de.r3s6.jarp.serve;
+package de.r3s6.jarp.server;
 
 import java.io.PrintStream;
 import java.time.LocalDateTime;

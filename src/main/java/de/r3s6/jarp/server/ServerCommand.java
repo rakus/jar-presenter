@@ -1,61 +1,68 @@
-package de.r3s6.jarp.serve;
+package de.r3s6.jarp.server;
 
 import java.io.IOException;
 import java.lang.ProcessBuilder.Redirect;
+import java.util.ArrayList;
 import java.util.Deque;
+import java.util.List;
 
-import de.r3s6.jarp.ArgsHandler;
+import de.r3s6.jarp.args.ArgsHandler;
+import de.r3s6.jarp.args.ArgsHandler.Counter;
+import de.r3s6.jarp.args.ArgsHandler.Flag;
+import de.r3s6.jarp.args.CmdLineArgExcpetion;
 
-public class ServeCommand {
+public class ServerCommand {
 
     private boolean startBrowser;
     private int serverPort;
     private int verbosity;
 
-    public static ServeCommand create() {
-        return new ServeCommand();
+    public static ServerCommand create() {
+        return new ServerCommand();
     }
 
-    public ServeCommand args(final Deque<String> args) {
+    public ServerCommand args(final Deque<String> args) {
         // -b start default browser
         // -B <browser cmd>
         // -p <port> start Server on this port
         // -v verbose, use multiple times to increase verbosity
 
-        final ArgsHandler ah = new ArgsHandler(args);
-        String param;
-        while ((param = ah.next()) != null) {
-            switch (param) {
-            case "-b":
-                startBrowser = true;
-                break;
-            case "-p":
-                setPort(ah.fetchArgument());
-                break;
-            case "-v":
-                verbosity++;
-                ;
-                break;
-            default:
-                System.err.println("Unknown parameter " + param);
-                // FALLTHROUGH
-            case "--help":
+        try {
+            final ArgsHandler ah = new ArgsHandler();
+
+            final Flag browserOpt = ah.addFlag('b');
+            final Counter verboseOpt = ah.addCounter('v');
+            final List<String> optionalArgs = new ArrayList<>();
+            ah.optionalArgumentList(optionalArgs);
+
+            ah.handle(args);
+
+            this.startBrowser = browserOpt.getValue();
+            this.verbosity = verboseOpt.getValue();
+
+            if (optionalArgs.size() == 1) {
+                setPort(optionalArgs.get(0));
+            } else if (optionalArgs.size() > 1) {
+                System.err.println("Superflous arguments beginning with: " + optionalArgs.get(1));
                 show_help();
                 System.exit(1);
-
             }
-        }
 
+        } catch (final CmdLineArgExcpetion e) {
+            System.err.println(e.getMessage());
+            show_help();
+            System.exit(1);
+        }
         return this;
     }
 
     public static void show_help() {
 
-        System.out.println("java -jar jar-presenter serve [-p port] [-b] [-v]");
-        System.out.println("  Start web server to serve the presentation.");
-        System.out.println("    -p port  use given port (default is random)");
-        System.out.println("    -b       immediately start the (default) browser");
-        System.out.println("    -v       increase loggign output");
+        System.out.println("server - starts a web server to serve the presentation");
+        System.out.println("      USAGE: java -jar jar-presenter.jar server [-b] [-v] [port]");
+        System.out.println("        -b       immediately start the (default) browser");
+        System.out.println("        -v       increase logging output");
+        System.out.println("        port     use given port (default is random)");
 
     }
 
