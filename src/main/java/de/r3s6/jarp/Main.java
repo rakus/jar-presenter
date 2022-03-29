@@ -1,73 +1,56 @@
 package de.r3s6.jarp;
 
 import java.io.IOException;
-import java.lang.ProcessBuilder.Redirect;
+import java.util.ArrayDeque;
+import java.util.Arrays;
+import java.util.Deque;
 
-import de.r3s6.jarp.serve.HttpServerchen;
+import de.r3s6.jarp.extract.ExtractCommand;
+import de.r3s6.jarp.serve.ServeCommand;
 
 public class Main {
 
-    public static void main(String[] args) throws IOException {
-        serve();
-    }
+    public static void main(final String[] args) throws IOException {
 
-    private static void serve() {
-        try (HttpServerchen srv = new HttpServerchen()) {
-            int port = srv.getPort();
-            Runnable r = new Runnable() {
-                public void run() {
-                    try {
-                        srv.serve();
-                    } catch (IOException e) {
-                        throw new RuntimeException(e);
-                    }
-                }
-            };
-
-            Thread serverThread = new Thread(r);
-            serverThread.start();
-
-            System.out.println("Serving on http://localhost:" + port);
-
-            openBrowser(port);
-
-            try {
-                serverThread.join();
-            } catch (InterruptedException e) {
-                // IGNORED
+        if (args.length == 0) {
+            ServeCommand.create().serve();
+        } else {
+            final Deque<String> argList = new ArrayDeque<>(Arrays.asList(args));
+            if ("--help".equals(argList.peekFirst())) {
+                showHelp();
+                System.exit(0);
+            } else if (argList.peekFirst().startsWith("-")) {
+                ServeCommand.create().args(argList).serve();
             }
-        } catch (IOException e) {
-            System.err.println("Can't start HttpServerchen: " + e.toString());
+            final String command = argList.poll();
+            switch (command) {
+            case "serve":
+                ServeCommand.create().args(argList).serve();
+                break;
+            case "extract":
+                ExtractCommand.create().args(argList).execute();
+                break;
+            case "pack":
+                System.err.println("NOT YET IMPLEMENTED");
+                System.exit(1);
+                break;
+
+            default:
+                System.err.println("ERROR: Unknown command: " + command);
+                System.exit(1);
+                break;
+            }
         }
 
     }
 
-    private static void openBrowser(int port) {
+    private static void showHelp() {
 
-        final String url = "http://localhost:" + port;
-        String[] command;
-
-        switch (OsType.DETECTED) {
-        case Windows:
-            command = new String[] { "start", url };
-            break;
-        case MacOS:
-            command = new String[] { "open", url };
-            break;
-        default:
-            // Linux and other unixoid systems
-            command = new String[] { "nohup", "xdg-open", url };
-            break;
-        }
-
-        ProcessBuilder processBuilder = new ProcessBuilder(command);
-        processBuilder.redirectOutput(Redirect.DISCARD);
-        processBuilder.redirectError(Redirect.DISCARD);
-        try {
-            processBuilder.start();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        System.out.println();
+        ServeCommand.show_help();
+        System.out.println();
+        ExtractCommand.show_help();
+        System.out.println();
     }
 
 }

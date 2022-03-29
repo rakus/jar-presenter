@@ -1,4 +1,4 @@
-package de.r3s6.jarp;
+package de.r3s6.jarp.serve;
 
 import java.util.Locale;
 

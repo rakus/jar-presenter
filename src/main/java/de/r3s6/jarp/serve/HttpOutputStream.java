@@ -7,7 +7,7 @@ import java.nio.charset.StandardCharsets;
 
 public class HttpOutputStream extends OutputStream {
 
-    private static final Logger LOGGER = new Logger();
+    private static final Logger LOGGER = Logger.instance();
 
     private static final byte[] NL = utf8Bytes("\r\n");
 

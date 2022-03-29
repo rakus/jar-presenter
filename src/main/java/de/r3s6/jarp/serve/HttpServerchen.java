@@ -31,7 +31,7 @@ import java.util.Properties;
  */
 public class HttpServerchen implements Closeable {
 
-    private static final Logger LOGGER = new Logger();
+    private static final Logger LOGGER = Logger.instance();
 
     private static final String HTTP404_FMT = "<html><head><title>Not Found</title></head>"
             + "<body><p>The requested resource could not be found.</p>"
@@ -46,15 +46,14 @@ public class HttpServerchen implements Closeable {
 
     private final Map<String, String> fileMap;
 
-    public HttpServerchen(final String rootDir) throws IOException {
-        // automatically choose an available port
-        serverSocket = new ServerSocket(8000);
+    public HttpServerchen(final int port, final String rootDir) throws IOException {
+        serverSocket = new ServerSocket(port);
         this.rootDir = rootDir;
         this.fileMap = readMapTable();
     }
 
-    public HttpServerchen() throws IOException {
-        this("presentation");
+    public HttpServerchen(final int port) throws IOException {
+        this(port, "presentation");
     }
 
     private Map<String, String> readMapTable() throws IOException {
@@ -158,10 +157,10 @@ public class HttpServerchen implements Closeable {
             e.printStackTrace();
         } finally {
             try {
-                LOGGER.info("Closing socket connection");
+                LOGGER.debug("Closing socket connection");
                 client.close();
             } catch (final IOException e) {
-                LOGGER.info("Socket close failed: " + e.toString());
+                LOGGER.debug("Socket close failed: " + e.toString());
             }
 
         }
