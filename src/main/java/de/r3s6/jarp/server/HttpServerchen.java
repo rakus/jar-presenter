@@ -20,11 +20,17 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
 
+import de.r3s6.jarp.JarPresenter;
+
 /**
  * The most trivial HTTP server.
  *
  * Only serves resources available via classpath. No support for keepalive. No
  * security, nothing.
+ *
+ * BTW: In German the suffix "chen" is used to minimize something. Like a
+ * "Schiff" (ship) is rather big. Like a cruise ship. A "SchiffCHEN" is pretty
+ * small. Down to a kids toy.
  *
  * @author rks
  *
@@ -44,25 +50,42 @@ public class HttpServerchen implements Closeable {
     /** Close socket when client send nothing within 60 seconds. */
     private static final int SOCKET_TIMEOUT = 60 * 1000;
 
-    private final ServerSocket serverSocket;
+    private final ServerSocket mServerSocket;
 
-    private final String rootDir;
+    private final String mRootDir;
 
-    private final Map<String, String> fileMap;
+    /**
+     * Used to map file names to actual resource name. Most important use case is
+     * when the root HTML document is _NOT_ named index.html.
+     */
+    private final Map<String, String> mFileMap;
 
+    /**
+     * Constructs a HttpServerchen.
+     *
+     * @param port    the port to open. 0 means to choose a random port.
+     * @param rootDir the root dir of the resources to serve.
+     * @throws IOException if reading the filemap files produces it.
+     */
     public HttpServerchen(final int port, final String rootDir) throws IOException {
-        serverSocket = new ServerSocket(port);
-        this.rootDir = rootDir;
-        this.fileMap = readMapTable();
+        mServerSocket = new ServerSocket(port);
+        this.mRootDir = rootDir;
+        this.mFileMap = readMapTable();
     }
 
+    /**
+     * Constructs a HttpServerchen.
+     *
+     * @param port the port to open. 0 means to choose a random port.
+     * @throws IOException if reading the filemap files produces it.
+     */
     public HttpServerchen(final int port) throws IOException {
-        this(port, "presentation");
+        this(port, JarPresenter.PRESENTATION_DIR);
     }
 
     private Map<String, String> readMapTable() throws IOException {
         try (InputStream in = this.getClass().getClassLoader()
-                .getResourceAsStream(rootDir + "/jarp-filemap.properties")) {
+                .getResourceAsStream(mRootDir + "/" + JarPresenter.FILEMAP_BASENAME)) {
             if (in != null) {
                 final Properties props = new Properties();
                 props.load(in);
@@ -78,13 +101,17 @@ public class HttpServerchen implements Closeable {
     }
 
     public int getPort() {
-        return serverSocket.getLocalPort();
+        return mServerSocket.getLocalPort();
     }
 
+    /**
+     * Start serving.
+     *
+     * @throws IOException on socket problems
+     */
     public void serve() throws IOException {
-        readMapTable();
         while (true) {
-            final Socket client = serverSocket.accept();
+            final Socket client = mServerSocket.accept();
             new Thread(() -> handleClient(client)).start();
         }
     }
@@ -122,7 +149,7 @@ public class HttpServerchen implements Closeable {
                 final HttpRequest.Builder builder = new HttpRequest.Builder();
 
                 final String[] requestParts = lines.get(0).split(" ");
-                if (requestParts.length < 3) {
+                if (requestParts.length < 3) { // NOCS: MagicNumber
                     LOGGER.error("Invalid request: " + lines.get(0));
                     return;
                 }
@@ -196,7 +223,7 @@ public class HttpServerchen implements Closeable {
 
             LOGGER.info("Serving: " + fn);
 
-            final String resource = rootDir + fileMap.getOrDefault(fn, fn);
+            final String resource = mRootDir + mFileMap.getOrDefault(fn, fn);
 
             try (InputStream in = this.getClass().getClassLoader().getResourceAsStream(resource)) {
 
@@ -302,9 +329,9 @@ public class HttpServerchen implements Closeable {
 
     @Override
     public void close() {
-        if (this.serverSocket != null) {
+        if (this.mServerSocket != null) {
             try {
-                serverSocket.close();
+                mServerSocket.close();
             } catch (final IOException e) {
                 e.printStackTrace();
             }

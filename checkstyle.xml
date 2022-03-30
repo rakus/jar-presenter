@@ -1,0 +1,390 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE module PUBLIC
+    "-//Checkstyle//DTD Checkstyle Configuration 1.3//EN"
+    "https://checkstyle.org/dtds/configuration_1_3.dtd">
+
+<module name="Checker">
+
+    <!-- default severity is "warning" -->
+    <property name="severity" value="warning" />
+
+    <module name="NewlineAtEndOfFile" />
+    <module name="FileTabCharacter" />
+
+    <module name="FileLength">
+        <property name="max" value="2000" />
+        <property name="fileExtensions" value="java" />
+    </module>
+
+    <!-- Size -->
+    <module name="LineLength">
+        <!-- Allow "@see" Javadoc and "$Id:" cvs keyword to extend the
+            maximum line length -->
+        <property name="ignorePattern" value="^$|\* @see.*$|\$Id:" />
+        <property name="max" value="130" />
+        <property name="tabWidth" value="4" />
+        <property name="severity" value="info" />
+    </module>
+
+    <module name="TreeWalker">
+
+        <!-- Switch off/on all checks. -->
+        <module name="SuppressionCommentFilter">
+            <property name="offCommentFormat" value="GENERATED START" />
+            <property name="onCommentFormat" value="GENERATED END" />
+        </module>
+
+        <module name="SuppressionCommentFilter">
+            <property name="offCommentFormat" value="CHECKSTYLE:OFF" />
+            <property name="onCommentFormat" value="CHECKSTYLE:ON" />
+        </module>
+
+        <!-- Switch off/on all checks. -->
+        <module name="SuppressionCommentFilter">
+            <property name="offCommentFormat" value="CSOFF\: ALL" />
+            <property name="onCommentFormat" value="CSON\: ALL" />
+        </module>
+
+        <!-- Switch off/on named checks. -->
+        <module name="SuppressionCommentFilter">
+            <property name="offCommentFormat" value="CSOFF\: ([\w\|]+)" />
+            <property name="onCommentFormat" value="CSON\: ([\w\|]+)" />
+            <property name="checkFormat" value="$1" />
+        </module>
+
+        <!-- Same as above, but "NOCS" looks more like "NOPMD". -->
+        <module name="SuppressWithNearbyCommentFilter">
+            <property name="commentFormat" value="NOCS: ([\w\|]+)" />
+            <property name="influenceFormat" value="0" />
+            <property name="checkFormat" value="$1" />
+        </module>
+
+
+        <!-- Comment empty (catch) block with // IGNORE -->
+        <module name="SuppressWithNearbyCommentFilter">
+            <property name="commentFormat" value="IGNORE" />
+            <property name="checkFormat" value="EmptyBlock" />
+            <property name="influenceFormat" value="-1" />
+        </module>
+
+
+        <!-- BAD BAD BAD - NEVER DO IT! Do not catch Throwable, Exception
+            or RuntimeException, use specific type. -->
+        <module name="IllegalCatch">
+            <property name="severity" value="error" />
+        </module>
+        <module name="IllegalThrows">
+            <property name="severity" value="error" />
+            <property name="ignoreOverriddenMethods" value="true" />
+        </module>
+
+        <!--======[ Annotations ]=========================================== -->
+        <!-- If a method is deprecated the JavaDoc @deprecated and the annotation
+            @Deprecated must be present. -->
+        <module name="MissingDeprecated" />
+
+        <!--======[ Javadoc ]=============================================== -->
+
+        <module name="InvalidJavadocPosition" />
+        <module name="JavadocBlockTagLocation" />
+        <module name="JavadocContentLocation" />
+        <module name="JavadocMissingLeadingAsterisk" />
+        <module name="JavadocMissingWhitespaceAfterAsterisk" />
+        <module name="NonEmptyAtclauseDescription" />
+        <module name="RequireEmptyLineBeforeBlockTagGroup" />
+        <!--
+        <module name="JavadocParagraph">
+            <property name="allowNewlineParagraph" value="false" />
+        </module>
+        -->
+        <module name="JavadocStyle">
+            <property name="checkEmptyJavadoc" value="true" />
+        </module>
+
+        <!-- for private and package-private methods -->
+        <module name="JavadocMethod">
+            <property name="accessModifiers" value="package,private" />
+
+            <!-- Ignore errors when a method has parameters but does not
+                have matching param tags in the javadoc. -->
+            <property name="allowMissingParamTags" value="true" />
+            <!-- Ignore errors when a method returns non-void type does have
+                a return tag in the javadoc. -->
+            <property name="allowMissingReturnTag" value="true" />
+        </module>
+
+        <!-- for protected and public methods -->
+        <module name="JavadocMethod">
+            <property name="accessModifiers" value="public, protected" />
+        </module>
+
+        <!-- Type comments for protected and public. -->
+        <module name="JavadocType">
+            <property name="scope" value="protected" />
+        </module>
+
+        <!-- Comments on protected and public fields. -->
+        <module name="JavadocVariable">
+            <property name="scope" value="protected" />
+        </module>
+
+        <!-- Allow missing Javadoc on setter/getter. -->
+        <module name="MissingJavadocMethod">
+            <property name="allowMissingPropertyJavadoc" value="true" />
+        </module>
+
+        <module name="MissingJavadocType">
+            <property name="scope" value="protected" />
+        </module>
+
+
+        <!--======[ Naming ]================================================ -->
+        <module name="ConstantName" />
+
+        <module name="MemberName">
+            <property name="format" value="^m[A-Z][A-Za-z0-9]*$" />
+        </module>
+        <module name="StaticVariableName">
+            <property name="format" value="^s[A-Z][A-Za-z0-9]*$" />
+        </module>
+
+        <!-- As the prefix notation was added above, we need to check that
+            local vars and parameter are not look similar. -->
+        <module name="LocalFinalVariableName">
+            <property name="format" value="(^[a-z]$)|(^(([a-ln-rt-z][A-Z])|([a-z][a-z0-9]))[A-Za-z0-9]*$)" />
+        </module>
+        <module name="ParameterName">
+            <property name="format" value="(^[a-z]$)|(^(([a-ln-rt-z][A-Z])|([a-z][a-z0-9]))[A-Za-z0-9]*$)" />
+        </module>
+        <module name="LocalVariableName">
+            <property name="format" value="(^[a-z]$)|(^(([a-ln-rt-z][A-Z])|([a-z][a-z0-9]))[A-Za-z0-9]*$)" />
+        </module>
+
+        <module name="MethodName" />
+        <module name="PackageName" />
+        <module name="TypeName">
+            <property name="format" value="^[A-Z][A-Za-z0-9]*$" />
+            <property name="tokens" value="CLASS_DEF" />
+        </module>
+        <module name="TypeName">
+            <property name="format" value="^I?[A-Z][A-Za-z0-9]*$" />
+            <property name="tokens" value="INTERFACE_DEF" />
+        </module>
+
+        <module name="ClassTypeParameterName" />
+        <module name="MethodTypeParameterName" />
+
+
+        <!--======[ Coding ]================================================ -->
+        <!-- use "String[] array" instead of "String array[]" -->
+        <module name="ArrayTypeStyle" />
+
+        <module name="AvoidNoArgumentSuperConstructorCall" />
+
+        <!-- if equals(ThisType) exists equals(Obeject) must be overwritten -->
+        <module name="CovariantEquals" />
+
+        <module name="DeclarationOrder" />
+        <module name="EmptyStatement" />
+        <module name="EqualsAvoidNull" />
+        <module name="EqualsHashCode" />
+        <module name="ExplicitInitialization" />
+        <module name="FallThrough" />
+        <module name="FinalLocalVariable" />
+        <module name="InnerAssignment" />
+        <module name="MissingSwitchDefault" />
+        <module name="DefaultComesLast" />
+        <module name="ModifiedControlVariable" />
+        <module name="MultipleVariableDeclarations" />
+        <module name="NoFinalizer" />
+        <module name="OneStatementPerLine" />
+        <module name="OverloadMethodsDeclarationOrder"/>
+        <module name="PackageDeclaration" />
+        <module name="ParameterAssignment" />
+        <module name="RedundantModifier" />
+        <module name="SimplifyBooleanExpression"/>
+        <module name="SimplifyBooleanReturn"/>
+        <module name="StringLiteralEquality"/>
+        <module name="SuperClone"/>
+        <module name="SuperFinalize"/>
+        <module name="UnnecessarySemicolonAfterOuterTypeDeclaration"/>
+        <module name="UnnecessarySemicolonAfterTypeMemberDeclaration"/>
+        <module name="UnnecessarySemicolonInTryWithResources"/>
+
+        <module name="UpperEll" />
+
+        <module name="HiddenField">
+            <property name="ignoreConstructorParameter" value="true" />
+            <property name="ignoreSetter" value="true" />
+            <property name="setterCanReturnItsClass" value="true" />
+        </module>
+        <module name="IllegalInstantiation">
+            <property name="classes" value="java.lang.Boolean,java.lang.String" />
+        </module>
+        <module name="MagicNumber">
+            <property name="ignoreHashCodeMethod" value="true" />
+        </module>
+        <module name="MultipleStringLiterals">
+            <property name="allowedDuplicates" value="3" />
+        </module>
+
+
+
+
+
+        <module name="ModifierOrder" />
+
+
+        <!-- avoid uneccessary nested blocks -->
+        <module name="AvoidNestedBlocks">
+            <!-- allow a block in a switch statement. -->
+            <property name="allowInSwitchCase " value="true" />
+        </module>
+
+        <!-- empty block is most likely a mistake -->
+        <module name="EmptyBlock" />
+        <module name="EmptyCatchBlock">
+            <property name="exceptionVariableName" value="expected|ignore" />
+            <property name="commentFormat" value="IGNORED" />
+        </module>
+
+        <!-- Always use a block for if, else, for, while, do -->
+        <module name="NeedBraces" />
+
+
+        <!--======[ Imports ]=============================================== -->
+        <module name="UnusedImports">
+            <property name="processJavadoc" value="true" />
+        </module>
+
+        <module name="AvoidStarImport">
+            <property name="excludes" value="org.junit.Assert.*" />
+        </module>
+
+        <module name="AvoidStaticImport">
+            <property name="excludes" value="org.junit.Assert.*" />
+        </module>
+
+
+        <!-- do not import sun.* packages and classes or from some IBM packages
+            that contain a BigDecimal implementation. -->
+        <module name="IllegalImport">
+            <property name="illegalPkgs" value="sun,com.ibm.icu,com.ibm.math" />
+            <property name="severity" value="error" />
+        </module>
+
+
+        <!--======[ Class Design ]========================================== -->
+        <!-- Checks that a class which has only private constructors is declared
+            as final. -->
+        <module name="FinalClass" />
+
+        <!-- Hide constructor if class only contains static methods -->
+        <module name="HideUtilityClassConstructor" />
+
+        <!-- Do not use a Interface only to declare constants -->
+        <module name="InterfaceIsType">
+            <property name="allowMarkerInterfaces" value="true" />
+        </module>
+
+        <!-- Only final static members might be public, all others must be
+            private or protected. -->
+        <module name="VisibilityModifier" />
+
+        <!-- Local vars should be final if they are not modified. -->
+        <module name="FinalLocalVariable" />
+
+        <module name="FinalParameters" />
+
+        <!-- A method should have less than 5 parameters -->
+        <module name="ParameterNumber">
+            <property name="max" value="5" />
+            <property name="severity" value="info" />
+            <property name="ignoreOverriddenMethods" value="true" />
+        </module>
+
+        <!-- A method should not throw more than two different exception
+            types -->
+        <module name="ThrowsCount">
+            <property name="max" value="2" />
+            <property name="severity" value="info" />
+        </module>
+
+        <!-- Exceptions should not be mutable after construction. -->
+        <module name="MutableException" />
+
+        <!--======[ Code Formatting ]======================================= -->
+
+        <module name="LeftCurly" />
+        <module name="RightCurly" />
+        <!-- Should be handled by Eclipse <module name="Indentation"> <property
+            name="caseIndent" value="0" /> <property name="throwsIndent" value="8" />
+            <property name="arrayInitIndent" value="8" /> </module> -->
+
+        <module name="EmptyForIteratorPad" />
+        <module name="NoWhitespaceAfter">
+            <!-- Without ARRAY_INIT -->
+            <property name="tokens" value="INC,DEC,UNARY_MINUS,UNARY_PLUS,BNOT,LNOT,DOT" />
+            <!-- -->
+            <property name="allowLineBreaks" value="true" />
+        </module>
+        <module name="NoWhitespaceBefore">
+            <property name="allowLineBreaks" value="true" />
+        </module>
+        <module name="OperatorWrap">
+            <property name="option" value="nl" />
+        </module>
+        <module name="ParenPad" />
+        <module name="WhitespaceAfter" />
+        <module name="WhitespaceAround" />
+        <module name="MethodParamPad" />
+
+        <module name="TypecastParenPad" />
+
+        <!-- One trailing space is OK, more are flagged. -->
+        <!-- <module name="GenericIllegalRegexp"> <property name="format"
+            value="\s\s+$"/> <property name="message" value="Line has trailing spaces."/>
+            <property name="severity" value="info"/> </module> -->
+
+        <!-- They are urgly and hard to maintain -->
+        <module name="TrailingComment">
+            <property name="legalComment" value="\$NON-NLS-|NOCS" />
+        </module>
+
+        <module name="MethodLength">
+            <!-- 150 lines is rather long -->
+            <property name="max" value="150" />
+        </module>
+
+
+
+
+        <!-- In a Java aplication it is rarely necessary to write to STDOUT/ERR.
+            Use logging! -->
+        <!--
+        <module name="RegexpSinglelineJava">
+            <property name="id" value="custom.STDOUT" />
+            <property name="format" value="(System\.(out|err)\.print)|printStackTrace" />
+            <property name="ignoreComments" value="true" />
+            <property name="message" value="Don''t print to STDOUT, STDERR." />
+        </module>
+        -->
+
+        <!--======[ Miscellaneous ]========================================= -->
+        <module name="TodoComment">
+            <property name="format" value="TODO,FIXME" />
+            <property name="severity" value="info" />
+        </module>
+
+        <!--======[ Controversial ]========================================= -->
+        <!-- The NPATH metric computes the number of possible execution paths
+            through a function. It takes into account the nesting of conditional statements
+            and multi-part boolean expressions (e.g., A && B, C || D, etc.). -->
+        <module name="NPathComplexity">
+            <property name="severity" value="info" />
+        </module>
+
+
+    </module>
+</module>
+

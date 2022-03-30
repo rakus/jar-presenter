@@ -3,23 +3,30 @@ package de.r3s6.jarp.server;
 import java.io.PrintStream;
 import java.time.LocalDateTime;
 
-class Logger {
+/**
+ * Logger vor server events.
+ *
+ * Logs to STDOUT/ERR.
+ *
+ * @author rks
+ */
+final class Logger {
 
-    private int verbosity;
+    private int mVerbosity;
 
     private static class InstanceHolder {
-        static Logger INSTANCE = new Logger();
+        static final Logger INSTANCE = new Logger();
     }
 
     private Logger() {
     }
 
-    public static Logger instance() {
+    static Logger instance() {
         return InstanceHolder.INSTANCE;
     }
 
     public void verbosity(final int value) {
-        verbosity = value;
+        mVerbosity = value;
     }
 
     void error(final String message, final Throwable thr) {
@@ -27,25 +34,25 @@ class Logger {
     }
 
     void error(final String message) {
-        if (verbosity >= 1) {
+        if (mVerbosity >= 1) {
             doLog(System.err, message, null);
         }
     }
 
     void info(final String message) {
-        if (verbosity >= 1) {
+        if (mVerbosity >= 1) {
             doLog(System.out, message, null);
         }
     }
 
     void debug(final String message) {
-        if (verbosity >= 3) {
+        if (mVerbosity >= 3) { // NOCS: MagicNumber
             doLog(System.out, message, null);
         }
     }
 
     void request(final HttpRequest request) {
-        if (verbosity >= 2) {
+        if (mVerbosity >= 2) {
             final StringBuilder sb = new StringBuilder();
             sb.append(request.getMethod()).append(" ").append(request.getUrl()).append(" ")
                     .append(request.getHeaders());
@@ -55,13 +62,13 @@ class Logger {
     }
 
     void status(final HttpStatus status) {
-        if (verbosity >= 2) {
+        if (mVerbosity >= 2) {
             doLog(System.out, "  " + status, null);
         }
     }
 
     void logResponseLine(final String line) {
-        if (verbosity >= 3) {
+        if (mVerbosity >= 3) { // NOCS: MagicNumber
             doLog(System.out, ">>" + line + "<<", null);
         }
     }

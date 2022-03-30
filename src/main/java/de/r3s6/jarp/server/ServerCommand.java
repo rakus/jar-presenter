@@ -11,16 +11,33 @@ import de.r3s6.jarp.args.ArgsHandler.Counter;
 import de.r3s6.jarp.args.ArgsHandler.Flag;
 import de.r3s6.jarp.args.CmdLineArgExcpetion;
 
+/**
+ * Command that starts a HTTP server and serves the presentation. directory in
+ * the sub-folder "presentation".
+ *
+ * @author rks
+ */
 public class ServerCommand {
 
-    private boolean startBrowser;
-    private int serverPort;
-    private int verbosity;
+    private boolean mStartBrowser;
+    private int mServerPort;
+    private int mVerbosity;
 
+    /**
+     * Create a ServerCommand.
+     *
+     * @return a new ServerCommand
+     */
     public static ServerCommand create() {
         return new ServerCommand();
     }
 
+    /**
+     * Processes the command line parameter.
+     *
+     * @param args the command line parameter.
+     * @return this
+     */
     public ServerCommand args(final Deque<String> args) {
         // -b start default browser
         // -B <browser cmd>
@@ -28,7 +45,7 @@ public class ServerCommand {
         // -v verbose, use multiple times to increase verbosity
 
         try {
-            final ArgsHandler ah = new ArgsHandler();
+            final ArgsHandler ah = new ArgsHandler(ServerCommand::showHelp);
 
             final Flag browserOpt = ah.addFlag('b');
             final Counter verboseOpt = ah.addCounter('v');
@@ -37,26 +54,29 @@ public class ServerCommand {
 
             ah.handle(args);
 
-            this.startBrowser = browserOpt.getValue();
-            this.verbosity = verboseOpt.getValue();
+            this.mStartBrowser = browserOpt.getValue();
+            this.mVerbosity = verboseOpt.getValue();
 
             if (optionalArgs.size() == 1) {
                 setPort(optionalArgs.get(0));
             } else if (optionalArgs.size() > 1) {
                 System.err.println("Superflous arguments beginning with: " + optionalArgs.get(1));
-                show_help();
+                showHelp();
                 System.exit(1);
             }
 
         } catch (final CmdLineArgExcpetion e) {
             System.err.println(e.getMessage());
-            show_help();
+            showHelp();
             System.exit(1);
         }
         return this;
     }
 
-    public static void show_help() {
+    /**
+     * Shows the command line help for the ServerCommand.
+     */
+    public static void showHelp() {
 
         System.out.println("server - starts a web server to serve the presentation");
         System.out.println("      USAGE: java -jar jar-presenter.jar server [-b] [-v] [port]");
@@ -71,15 +91,18 @@ public class ServerCommand {
             throw new RuntimeException("Missing argument for -p");
         }
         final int port = Integer.parseInt(fetchArgument);
-        if (port < 0 && port > 65535) {
+        if (port < 0 && port > 65535) { // NOCS: MagicNumber
             throw new RuntimeException("Port out of range 0 - 65535");
         }
-        serverPort = port;
+        mServerPort = port;
     }
 
+    /**
+     * Start serving by starting the HTTP server.
+     */
     public void serve() {
-        Logger.instance().verbosity(verbosity);
-        try (HttpServerchen srv = new HttpServerchen(serverPort)) {
+        Logger.instance().verbosity(mVerbosity);
+        try (HttpServerchen srv = new HttpServerchen(mServerPort)) {
             final int port = srv.getPort();
             final Runnable r = new Runnable() {
                 @Override
@@ -97,7 +120,7 @@ public class ServerCommand {
 
             System.out.println("Serving on http://localhost:" + port);
 
-            if (startBrowser) {
+            if (mStartBrowser) {
                 openBrowser(port);
             }
 
@@ -115,7 +138,7 @@ public class ServerCommand {
     private void openBrowser(final int port) {
 
         final String url = "http://localhost:" + port;
-        String[] command;
+        final String[] command;
 
         switch (OsType.DETECTED) {
         case Windows:

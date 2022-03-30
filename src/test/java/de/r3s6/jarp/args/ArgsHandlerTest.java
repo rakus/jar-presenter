@@ -18,9 +18,13 @@ import de.r3s6.jarp.args.ArgsHandler.ValueOption;
 
 class ArgsHandlerTest {
 
+    public static void showHelp() {
+        // Intentionally empty
+    }
+
     @Test
     void test() throws CmdLineArgExcpetion {
-        final ArgsHandler aj = new ArgsHandler();
+        final ArgsHandler aj = new ArgsHandler(ArgsHandlerTest::showHelp);
         final Flag debugOpt = aj.addFlag('d');
         final ValueOption indexOpt = aj.addValueOption('i');
         final Argument jarArg = aj.addArgument("jar");
@@ -40,7 +44,7 @@ class ArgsHandlerTest {
 
     @Test
     void test2() throws CmdLineArgExcpetion {
-        final ArgsHandler aj = new ArgsHandler();
+        final ArgsHandler aj = new ArgsHandler(ArgsHandlerTest::showHelp);
         final Flag debugOpt = aj.addFlag('d');
         final ValueOption indexOpt = aj.addValueOption('i');
         final Argument jarArg = aj.addArgument("jar");
@@ -62,7 +66,7 @@ class ArgsHandlerTest {
 
     @Test
     void testFlag() throws CmdLineArgExcpetion {
-        final ArgsHandler aj = new ArgsHandler();
+        final ArgsHandler aj = new ArgsHandler(ArgsHandlerTest::showHelp);
         final Flag debugOpt = aj.addFlag('d');
 
         aj.handle(Arrays.asList("-d"));
@@ -72,7 +76,7 @@ class ArgsHandlerTest {
 
     @Test
     void testDuplicateFlagException() {
-        final ArgsHandler aj = new ArgsHandler();
+        final ArgsHandler aj = new ArgsHandler(ArgsHandlerTest::showHelp);
         aj.addFlag('d');
 
         final CmdLineArgExcpetion ex = assertThrows(CmdLineArgExcpetion.class,
@@ -84,7 +88,7 @@ class ArgsHandlerTest {
 
     @Test
     void testCounter() throws CmdLineArgExcpetion {
-        final ArgsHandler aj = new ArgsHandler();
+        final ArgsHandler aj = new ArgsHandler(ArgsHandlerTest::showHelp);
         final Counter countOpt = aj.addCounter('v');
 
         aj.handle(Arrays.asList("-v", "-vvv"));
@@ -94,7 +98,7 @@ class ArgsHandlerTest {
 
     @Test
     void testValueOption() throws CmdLineArgExcpetion {
-        final ArgsHandler aj = new ArgsHandler();
+        final ArgsHandler aj = new ArgsHandler(ArgsHandlerTest::showHelp);
         final ValueOption f1 = aj.addValueOption('f');
         final ValueOption f2 = aj.addValueOption('o');
 
@@ -106,7 +110,7 @@ class ArgsHandlerTest {
 
     @Test
     void testDuplicateValueOptionException() {
-        final ArgsHandler aj = new ArgsHandler();
+        final ArgsHandler aj = new ArgsHandler(ArgsHandlerTest::showHelp);
         aj.addValueOption('f');
 
         final CmdLineArgExcpetion ex = assertThrows(CmdLineArgExcpetion.class,
@@ -118,7 +122,7 @@ class ArgsHandlerTest {
 
     @Test
     void testCombindedOtions() throws CmdLineArgExcpetion {
-        final ArgsHandler aj = new ArgsHandler();
+        final ArgsHandler aj = new ArgsHandler(ArgsHandlerTest::showHelp);
         final Flag debugOpt = aj.addFlag('d');
         final Counter cntOpt = aj.addCounter('v');
         final ValueOption valueOpt = aj.addValueOption('f');
@@ -132,7 +136,7 @@ class ArgsHandlerTest {
 
     @Test
     void testOptionalArguments() throws CmdLineArgExcpetion {
-        final ArgsHandler aj = new ArgsHandler();
+        final ArgsHandler aj = new ArgsHandler(ArgsHandlerTest::showHelp);
         final List<String> optArgs = new ArrayList<>();
         aj.optionalArgumentList(optArgs);
 
@@ -146,7 +150,7 @@ class ArgsHandlerTest {
 
     @Test
     void testUnexpectedOptionalArguments() throws CmdLineArgExcpetion {
-        final ArgsHandler aj = new ArgsHandler();
+        final ArgsHandler aj = new ArgsHandler(ArgsHandlerTest::showHelp);
         aj.addFlag('d');
         aj.addArgument("jar");
 
@@ -158,7 +162,7 @@ class ArgsHandlerTest {
 
     @Test
     void testMissingArgument() throws CmdLineArgExcpetion {
-        final ArgsHandler aj = new ArgsHandler();
+        final ArgsHandler aj = new ArgsHandler(ArgsHandlerTest::showHelp);
         aj.addFlag('d');
         aj.addArgument("jar");
         aj.addArgument("dir");
@@ -170,7 +174,7 @@ class ArgsHandlerTest {
 
     @Test
     void testMissingOptionValue() throws CmdLineArgExcpetion {
-        final ArgsHandler aj = new ArgsHandler();
+        final ArgsHandler aj = new ArgsHandler(ArgsHandlerTest::showHelp);
         aj.addValueOption('o');
 
         final CmdLineArgExcpetion ex = assertThrows(CmdLineArgExcpetion.class, () -> aj.handle(Arrays.asList("-o")));

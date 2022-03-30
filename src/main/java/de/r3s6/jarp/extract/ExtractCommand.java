@@ -10,47 +10,67 @@ import java.util.Enumeration;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 
+import de.r3s6.jarp.JarPresenter;
 import de.r3s6.jarp.args.ArgsHandler;
 import de.r3s6.jarp.args.ArgsHandler.Argument;
 import de.r3s6.jarp.args.CmdLineArgExcpetion;
 
-public class ExtractCommand {
+/**
+ * Extract command extracts the presentation from the jar to the current
+ * directory in the sub-folder "presentation".
+ *
+ * @author rks
+ */
+public final class ExtractCommand {
 
-    private File targetDir;
+    private File mTargetDir;
 
     private ExtractCommand() {
-        // TODO Auto-generated constructor stub
     }
 
+    /**
+     * Create a ExtractCommand.
+     *
+     * @return a new ExtractCommand
+     */
     public static ExtractCommand create() {
         return new ExtractCommand();
     }
 
+    /**
+     * Processes the command line parameter.
+     *
+     * @param args the command line parameter.
+     * @return this
+     */
     public ExtractCommand args(final Deque<String> args) {
 
         try {
-            final ArgsHandler ah = new ArgsHandler();
+            final ArgsHandler ah = new ArgsHandler(ExtractCommand::showHelp);
             final Argument tgtOpt = ah.addArgument("target-dir");
 
             ah.handle(args);
 
-            targetDir = new File(tgtOpt.getValue());
+            mTargetDir = new File(tgtOpt.getValue());
 
         } catch (final CmdLineArgExcpetion e) {
             System.err.println(e.getMessage());
-            show_help();
+            showHelp();
             System.exit(1);
         }
 
         return this;
     }
 
+    /**
+     * Runs the extract command.
+     */
     public void execute() {
         try {
 
-            if (!targetDir.isDirectory()) {
-                if (!targetDir.mkdir()) {
-                    System.err.println("ERROR: Can't create target dir: " + targetDir);
+            if (!mTargetDir.isDirectory()) {
+                if (!mTargetDir.mkdir()) {
+                    System.err.println("ERROR: Can't create target dir: " + mTargetDir);
                     System.exit(1);
                 }
             }
@@ -62,30 +82,30 @@ public class ExtractCommand {
                 final Enumeration<JarEntry> enumEntries = jar.entries();
                 while (enumEntries.hasMoreElements()) {
                     final JarEntry jarEntry = enumEntries.nextElement();
-                    if (jarEntry.getName().startsWith("presentation")) {
-                        final File tgtFile = new File(targetDir, jarEntry.getName());
+                    if (jarEntry.getName().startsWith(JarPresenter.PRESENTATION_DIR)) {
+                        final File tgtFile = new File(mTargetDir, jarEntry.getName());
                         if (jarEntry.isDirectory()) {
                             tgtFile.mkdir();
                             continue;
                         }
                         System.out.println("Extracting to " + tgtFile);
-                        try (final InputStream is = jar.getInputStream(jarEntry);
-                                final FileOutputStream fos = new FileOutputStream(tgtFile)) {
-                            while (is.available() > 0) { // write contents of 'is' to 'fos'
-                                fos.write(is.read());
-                            }
+                        try (InputStream is = jar.getInputStream(jarEntry);
+                                FileOutputStream fos = new FileOutputStream(tgtFile)) {
+                            is.transferTo(fos);
                         }
                     }
                 }
             }
         } catch (URISyntaxException | IOException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-            System.exit(11);
+            System.err.println("Error extracting presentation: " + e);
+            System.exit(1);
         }
     }
 
-    public static void show_help() {
+    /**
+     * Shows the command line help for the ExtractCommand.
+     */
+    public static void showHelp() {
 
         System.out.println("extract - extract the contained presentation to the given directory");
         System.out.println("      USAGE: java -jar jar-presenter.jar extract <target-dir>");
