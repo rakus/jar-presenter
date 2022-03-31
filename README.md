@@ -6,12 +6,16 @@ it own tiny HTTP server to serve the presentation.
 
 ## Features
 
-### Sever
+### Server
 The server is started with the sub-command `server`. It starts a minimalistic
 HTTP server and serves the presentation included in the jar.
 
 If requested with `-b` the default web browser is started automatically and
 will show the presentation.
+
+I called with `-g` or starting without a terminal (double click in a file
+explorer), a GUI dialog is opened. It shows the server address and has a button
+to stop the server.
 
 Help output:
 ```
@@ -20,6 +24,8 @@ server - starts a web server to serve the presentation
       USAGE: java -jar jar-presenter.jar server [-b] [-v] [port]
         -b       immediately start the (default) browser
         -v       increase logging output
+        -g       Use gui to report that server is running. Default when no
+                 terminal is attached.
         port     use given port (default is random)
 ```
 

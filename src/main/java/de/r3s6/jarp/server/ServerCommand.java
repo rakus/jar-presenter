@@ -1,10 +1,18 @@
 package de.r3s6.jarp.server;
 
+import java.awt.GraphicsEnvironment;
 import java.io.IOException;
 import java.lang.ProcessBuilder.Redirect;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.Deque;
 import java.util.List;
+
+import javax.swing.JEditorPane;
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+import javax.swing.event.HyperlinkEvent;
+import javax.swing.event.HyperlinkListener;
 
 import de.r3s6.jarp.args.ArgsHandler;
 import de.r3s6.jarp.args.ArgsHandler.Counter;
@@ -17,11 +25,15 @@ import de.r3s6.jarp.args.CmdLineArgExcpetion;
  *
  * @author rks
  */
-public class ServerCommand {
+public final class ServerCommand {
 
     private boolean mStartBrowser;
     private int mServerPort;
     private int mVerbosity;
+    private boolean mUseGui;
+
+    private ServerCommand() {
+    }
 
     /**
      * Create a ServerCommand.
@@ -44,18 +56,21 @@ public class ServerCommand {
         // -p <port> start Server on this port
         // -v verbose, use multiple times to increase verbosity
 
+        boolean wantGui = false;
         try {
             final ArgsHandler ah = new ArgsHandler(ServerCommand::showHelp);
 
             final Flag browserOpt = ah.addFlag('b');
             final Counter verboseOpt = ah.addCounter('v');
+            final Flag guiOpt = ah.addFlag('g');
             final List<String> optionalArgs = new ArrayList<>();
             ah.optionalArgumentList(optionalArgs);
 
             ah.handle(args);
 
-            this.mStartBrowser = browserOpt.getValue();
-            this.mVerbosity = verboseOpt.getValue();
+            mStartBrowser = browserOpt.getValue();
+            mVerbosity = verboseOpt.getValue();
+            wantGui = guiOpt.getValue();
 
             if (optionalArgs.size() == 1) {
                 setPort(optionalArgs.get(0));
@@ -70,6 +85,12 @@ public class ServerCommand {
             showHelp();
             System.exit(1);
         }
+
+        // Should we use the gui.
+        if ((wantGui || System.console() == null) && !GraphicsEnvironment.isHeadless()) {
+            mUseGui = true;
+        }
+
         return this;
     }
 
@@ -79,9 +100,11 @@ public class ServerCommand {
     public static void showHelp() {
 
         System.out.println("server - starts a web server to serve the presentation");
-        System.out.println("      USAGE: java -jar jar-presenter.jar server [-b] [-v] [port]");
+        System.out.println("      USAGE: java -jar jar-presenter.jar server [-b] [-v] [-g] [port]");
         System.out.println("        -b       immediately start the (default) browser");
         System.out.println("        -v       increase logging output");
+        System.out.println("        -g       Use gui to report that server is running. Default when no");
+        System.out.println("                 terminal is attached.");
         System.out.println("        port     use given port (default is random)");
 
     }
@@ -102,6 +125,7 @@ public class ServerCommand {
      */
     public void serve() {
         Logger.instance().verbosity(mVerbosity);
+
         try (HttpServerchen srv = new HttpServerchen(mServerPort)) {
             final int port = srv.getPort();
             final Runnable r = new Runnable() {
@@ -118,10 +142,26 @@ public class ServerCommand {
             final Thread serverThread = new Thread(r);
             serverThread.start();
 
-            System.out.println("Serving on http://localhost:" + port);
+            final URI uri = URI.create("http://localhost:" + port);
+
+            if (mUseGui) {
+                new Thread(() -> {
+                    showGuiDialog(uri);
+                    System.exit(0);
+                }).start();
+
+            } else {
+                final String message = "Serving on " + uri
+                        + "\n\nPoint your browser to that address to see the presentation";
+                System.out.println();
+                System.out.println(message);
+                System.out.println();
+            }
 
             if (mStartBrowser) {
-                openBrowser(port);
+                // Unfortunately Desktop.getDesktop().browse(uri) didn't work and didn't produce
+                // any error.
+                openBrowser(uri);
             }
 
             try {
@@ -130,26 +170,77 @@ public class ServerCommand {
                 // IGNORED
             }
         } catch (final IOException e) {
-            System.err.println("Can't start HttpServerchen: " + e.toString());
+            reportError("Can't start HttpServerchen: " + e.toString());
+            System.exit(1);
+        }
+        System.exit(0);
+    }
+
+    private void reportError(final String message) {
+        reportError(message, null);
+
+    }
+
+    private void reportError(final String message, final Throwable thr) {
+        if (mUseGui) {
+            // Show gui error message
+
+            final StringBuffer sb = new StringBuffer();
+            sb.append("<html><body><p>");
+            sb.append(message);
+            sb.append("</p></body></html>");
+
+            final JEditorPane msgPane = new JEditorPane("text/html", sb.toString());
+            msgPane.setEditable(false);
+            msgPane.setBackground(new JLabel().getBackground());
+
+            // show
+            JOptionPane.showOptionDialog(null, msgPane, "Jar-Presenter", JOptionPane.ERROR_MESSAGE,
+                    JOptionPane.ERROR_MESSAGE, null, new String[] { "OK" }, null);
+        } else {
+            System.err.println("ERROR: " + message);
         }
 
     }
 
-    private void openBrowser(final int port) {
+    private void showGuiDialog(final URI uri) {
 
-        final String url = "http://localhost:" + port;
+        final JEditorPane msgPane = new JEditorPane("text/html",
+                "<html><body>" + "<p>Serving on <a href=\"" + uri + "\">" + uri + "</a></p>"
+                        + "<p>Point your browser to that address to see the presentation.</p>"
+                        + "<p>Close this dialog to stop the server.</p>" + "</body></html>");
+        msgPane.setEditable(false);
+        msgPane.setBackground(new JLabel().getBackground());
+
+        // handle link events
+        msgPane.addHyperlinkListener(new HyperlinkListener() {
+            @Override
+            public void hyperlinkUpdate(final HyperlinkEvent e) {
+                if (e.getEventType().equals(HyperlinkEvent.EventType.ACTIVATED)) {
+                    openBrowser(uri);
+                }
+            }
+        });
+
+        // show
+        JOptionPane.showOptionDialog(null, msgPane, "Jar-Presenter", JOptionPane.PLAIN_MESSAGE,
+                JOptionPane.INFORMATION_MESSAGE, null, new String[] { "Stop Server" }, null);
+    }
+
+    private void openBrowser(final URI uri) {
+
         final String[] command;
 
         switch (OsType.DETECTED) {
         case Windows:
-            command = new String[] { "start", url };
+            command = new String[] { "start", uri.toString() };
             break;
         case MacOS:
-            command = new String[] { "open", url };
+            command = new String[] { "open", uri.toString() };
             break;
         default:
             // Linux and other unixoid systems
-            command = new String[] { "nohup", "xdg-open", url };
+            command = new String[] { "nohup", "xdg-open", uri.toString() };
             break;
         }
 
@@ -159,7 +250,7 @@ public class ServerCommand {
         try {
             processBuilder.start();
         } catch (final IOException e) {
-            e.printStackTrace();
+            reportError(String.format("Failed to start command '%s': %s\n", String.join(" ", command), e.toString()));
         }
     }
 

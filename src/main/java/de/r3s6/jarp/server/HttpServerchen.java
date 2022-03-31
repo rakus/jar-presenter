@@ -315,15 +315,18 @@ public class HttpServerchen implements Closeable {
         case "gif":
             return "image/gif";
         case "jpg":
+        case "jpeg":
             return "image/jpeg";
         case "svg":
             return "image/svg+xml; charset=UTF-8";
         case "woff":
-            return "application/font-woff";
+            return "font/woff";
+        case "woff2":
+            return "font/woff2";
         case "ttf":
             return "font/sfnt";
         default:
-            return "application/octet-stream; charset=binary";
+            return "application/octet-stream";
         }
     }
 
