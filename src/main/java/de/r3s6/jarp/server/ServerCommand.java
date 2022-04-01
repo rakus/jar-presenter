@@ -14,9 +14,9 @@ import javax.swing.JOptionPane;
 import javax.swing.event.HyperlinkEvent;
 import javax.swing.event.HyperlinkListener;
 
-import de.r3s6.jarp.args.ArgsHandler;
-import de.r3s6.jarp.args.ArgsHandler.Counter;
-import de.r3s6.jarp.args.ArgsHandler.Flag;
+import de.r3s6.jarp.args.ArgsParser;
+import de.r3s6.jarp.args.ArgsParser.Counter;
+import de.r3s6.jarp.args.ArgsParser.Flag;
 import de.r3s6.jarp.args.CmdLineArgExcpetion;
 
 /**
@@ -58,7 +58,7 @@ public final class ServerCommand {
 
         boolean wantGui = false;
         try {
-            final ArgsHandler ah = new ArgsHandler(ServerCommand::showHelp);
+            final ArgsParser ah = new ArgsParser(ServerCommand::showHelp);
 
             final Flag browserOpt = ah.addFlag('b');
             final Counter verboseOpt = ah.addCounter('v');
@@ -66,7 +66,7 @@ public final class ServerCommand {
             final List<String> optionalArgs = new ArrayList<>();
             ah.optionalArgumentList(optionalArgs);
 
-            ah.handle(args);
+            ah.parse(args);
 
             mStartBrowser = browserOpt.getValue();
             mVerbosity = verboseOpt.getValue();

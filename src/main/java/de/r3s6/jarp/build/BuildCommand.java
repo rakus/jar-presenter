@@ -2,7 +2,7 @@ package de.r3s6.jarp.build;
 
 import java.util.Deque;
 
-import de.r3s6.jarp.args.ArgsHandler;
+import de.r3s6.jarp.args.ArgsParser;
 import de.r3s6.jarp.args.CmdLineArgExcpetion;
 
 /**
@@ -41,13 +41,13 @@ public final class BuildCommand {
         // <presentation-dir>
 
         try {
-            final ArgsHandler ah = new ArgsHandler(BuildCommand::showHelp);
+            final ArgsParser ah = new ArgsParser(BuildCommand::showHelp);
 
             final var idxOpt = ah.addValueOption('i');
             final var jarOpt = ah.addArgument("new-jar-name");
             final var dirOpt = ah.addArgument("presentation-dir");
 
-            ah.handle(args);
+            ah.parse(args);
 
             this.mIndexFile = idxOpt.getValue();
             this.mTargetJarName = jarOpt.getValue();

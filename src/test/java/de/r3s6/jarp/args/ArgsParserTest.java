@@ -11,20 +11,20 @@ import java.util.List;
 
 import org.junit.jupiter.api.Test;
 
-import de.r3s6.jarp.args.ArgsHandler.Argument;
-import de.r3s6.jarp.args.ArgsHandler.Counter;
-import de.r3s6.jarp.args.ArgsHandler.Flag;
-import de.r3s6.jarp.args.ArgsHandler.ValueOption;
+import de.r3s6.jarp.args.ArgsParser.Argument;
+import de.r3s6.jarp.args.ArgsParser.Counter;
+import de.r3s6.jarp.args.ArgsParser.Flag;
+import de.r3s6.jarp.args.ArgsParser.ValueOption;
 
-class ArgsHandlerTest {
+class ArgsParserTest {
 
     public static void showHelp() {
-        // Intentionally empty
+        // Intenionally left blank
     }
 
     @Test
     void test() throws CmdLineArgExcpetion {
-        final ArgsHandler aj = new ArgsHandler(ArgsHandlerTest::showHelp);
+        final ArgsParser aj = new ArgsParser(ArgsParserTest::showHelp);
         final Flag debugOpt = aj.addFlag('d');
         final ValueOption indexOpt = aj.addValueOption('i');
         final Argument jarArg = aj.addArgument("jar");
@@ -32,7 +32,7 @@ class ArgsHandlerTest {
         final List<String> optArgs = new ArrayList<>();
         aj.optionalArgumentList(optArgs);
 
-        aj.handle(Arrays.asList("-i", "demo.html", "jarp.jar", "directory"));
+        aj.parse(Arrays.asList("-i", "demo.html", "jarp.jar", "directory"));
 
         assertEquals(false, debugOpt.getValue());
         assertEquals("demo.html", indexOpt.getValue());
@@ -44,7 +44,7 @@ class ArgsHandlerTest {
 
     @Test
     void test2() throws CmdLineArgExcpetion {
-        final ArgsHandler aj = new ArgsHandler(ArgsHandlerTest::showHelp);
+        final ArgsParser aj = new ArgsParser(ArgsParserTest::showHelp);
         final Flag debugOpt = aj.addFlag('d');
         final ValueOption indexOpt = aj.addValueOption('i');
         final Argument jarArg = aj.addArgument("jar");
@@ -52,7 +52,7 @@ class ArgsHandlerTest {
         final List<String> optArgs = new ArrayList<>();
         aj.optionalArgumentList(optArgs);
 
-        aj.handle(Arrays.asList("-i", "demo.html", "jarp.jar", "directory", "opt1", "opt2"));
+        aj.parse(Arrays.asList("-i", "demo.html", "jarp.jar", "directory", "opt1", "opt2"));
 
         assertEquals(false, debugOpt.getValue());
         assertEquals("demo.html", indexOpt.getValue());
@@ -66,21 +66,21 @@ class ArgsHandlerTest {
 
     @Test
     void testFlag() throws CmdLineArgExcpetion {
-        final ArgsHandler aj = new ArgsHandler(ArgsHandlerTest::showHelp);
+        final ArgsParser aj = new ArgsParser(ArgsParserTest::showHelp);
         final Flag debugOpt = aj.addFlag('d');
 
-        aj.handle(Arrays.asList("-d"));
+        aj.parse(Arrays.asList("-d"));
 
         assertEquals(true, debugOpt.getValue());
     }
 
     @Test
     void testDuplicateFlagException() {
-        final ArgsHandler aj = new ArgsHandler(ArgsHandlerTest::showHelp);
+        final ArgsParser aj = new ArgsParser(ArgsParserTest::showHelp);
         aj.addFlag('d');
 
         final CmdLineArgExcpetion ex = assertThrows(CmdLineArgExcpetion.class,
-                () -> aj.handle(Arrays.asList("-d", "-d")));
+                () -> aj.parse(Arrays.asList("-d", "-d")));
 
         assertEquals("Duplicate option: -d", ex.getMessage());
 
@@ -88,21 +88,21 @@ class ArgsHandlerTest {
 
     @Test
     void testCounter() throws CmdLineArgExcpetion {
-        final ArgsHandler aj = new ArgsHandler(ArgsHandlerTest::showHelp);
+        final ArgsParser aj = new ArgsParser(ArgsParserTest::showHelp);
         final Counter countOpt = aj.addCounter('v');
 
-        aj.handle(Arrays.asList("-v", "-vvv"));
+        aj.parse(Arrays.asList("-v", "-vvv"));
 
         assertEquals(4, countOpt.getValue());
     }
 
     @Test
     void testValueOption() throws CmdLineArgExcpetion {
-        final ArgsHandler aj = new ArgsHandler(ArgsHandlerTest::showHelp);
+        final ArgsParser aj = new ArgsParser(ArgsParserTest::showHelp);
         final ValueOption f1 = aj.addValueOption('f');
         final ValueOption f2 = aj.addValueOption('o');
 
-        aj.handle(Arrays.asList("-f", "file1", "-ofile2"));
+        aj.parse(Arrays.asList("-f", "file1", "-ofile2"));
 
         assertEquals("file1", f1.getValue());
         assertEquals("file2", f2.getValue());
@@ -110,11 +110,11 @@ class ArgsHandlerTest {
 
     @Test
     void testDuplicateValueOptionException() {
-        final ArgsHandler aj = new ArgsHandler(ArgsHandlerTest::showHelp);
+        final ArgsParser aj = new ArgsParser(ArgsParserTest::showHelp);
         aj.addValueOption('f');
 
         final CmdLineArgExcpetion ex = assertThrows(CmdLineArgExcpetion.class,
-                () -> aj.handle(Arrays.asList("-f", "file", "-f", "other file")));
+                () -> aj.parse(Arrays.asList("-f", "file", "-f", "other file")));
 
         assertEquals("Duplicate option: -f", ex.getMessage());
 
@@ -122,12 +122,12 @@ class ArgsHandlerTest {
 
     @Test
     void testCombindedOtions() throws CmdLineArgExcpetion {
-        final ArgsHandler aj = new ArgsHandler(ArgsHandlerTest::showHelp);
+        final ArgsParser aj = new ArgsParser(ArgsParserTest::showHelp);
         final Flag debugOpt = aj.addFlag('d');
         final Counter cntOpt = aj.addCounter('v');
         final ValueOption valueOpt = aj.addValueOption('f');
 
-        aj.handle(Arrays.asList("-dvvvffile-name"));
+        aj.parse(Arrays.asList("-dvvvffile-name"));
 
         assertEquals(true, debugOpt.getValue());
         assertEquals(3, cntOpt.getValue());
@@ -136,11 +136,11 @@ class ArgsHandlerTest {
 
     @Test
     void testOptionalArguments() throws CmdLineArgExcpetion {
-        final ArgsHandler aj = new ArgsHandler(ArgsHandlerTest::showHelp);
+        final ArgsParser aj = new ArgsParser(ArgsParserTest::showHelp);
         final List<String> optArgs = new ArrayList<>();
         aj.optionalArgumentList(optArgs);
 
-        aj.handle(Arrays.asList("--", "-i", "demo.html"));
+        aj.parse(Arrays.asList("--", "-i", "demo.html"));
 
         assertEquals(2, optArgs.size());
         assertEquals("-i", optArgs.get(0));
@@ -150,34 +150,34 @@ class ArgsHandlerTest {
 
     @Test
     void testUnexpectedOptionalArguments() throws CmdLineArgExcpetion {
-        final ArgsHandler aj = new ArgsHandler(ArgsHandlerTest::showHelp);
+        final ArgsParser aj = new ArgsParser(ArgsParserTest::showHelp);
         aj.addFlag('d');
         aj.addArgument("jar");
 
         final CmdLineArgExcpetion ex = assertThrows(CmdLineArgExcpetion.class,
-                () -> aj.handle(Arrays.asList("-d", "jarp.jar", "superflous")));
+                () -> aj.parse(Arrays.asList("-d", "jarp.jar", "superflous")));
 
         assertEquals("Superflous arguments starting with: superflous", ex.getMessage());
     }
 
     @Test
     void testMissingArgument() throws CmdLineArgExcpetion {
-        final ArgsHandler aj = new ArgsHandler(ArgsHandlerTest::showHelp);
+        final ArgsParser aj = new ArgsParser(ArgsParserTest::showHelp);
         aj.addFlag('d');
         aj.addArgument("jar");
         aj.addArgument("dir");
 
-        final CmdLineArgExcpetion ex = assertThrows(CmdLineArgExcpetion.class, () -> aj.handle(Arrays.asList("-d")));
+        final CmdLineArgExcpetion ex = assertThrows(CmdLineArgExcpetion.class, () -> aj.parse(Arrays.asList("-d")));
 
         assertEquals("Missing argument(s): jar, dir", ex.getMessage());
     }
 
     @Test
     void testMissingOptionValue() throws CmdLineArgExcpetion {
-        final ArgsHandler aj = new ArgsHandler(ArgsHandlerTest::showHelp);
+        final ArgsParser aj = new ArgsParser(ArgsParserTest::showHelp);
         aj.addValueOption('o');
 
-        final CmdLineArgExcpetion ex = assertThrows(CmdLineArgExcpetion.class, () -> aj.handle(Arrays.asList("-o")));
+        final CmdLineArgExcpetion ex = assertThrows(CmdLineArgExcpetion.class, () -> aj.parse(Arrays.asList("-o")));
 
         assertEquals("Missing value for option: -o", ex.getMessage());
     }

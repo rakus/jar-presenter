@@ -11,8 +11,8 @@ import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 
 import de.r3s6.jarp.JarPresenter;
-import de.r3s6.jarp.args.ArgsHandler;
-import de.r3s6.jarp.args.ArgsHandler.Argument;
+import de.r3s6.jarp.args.ArgsParser;
+import de.r3s6.jarp.args.ArgsParser.Argument;
 import de.r3s6.jarp.args.CmdLineArgExcpetion;
 
 /**
@@ -46,10 +46,10 @@ public final class ExtractCommand {
     public ExtractCommand args(final Deque<String> args) {
 
         try {
-            final ArgsHandler ah = new ArgsHandler(ExtractCommand::showHelp);
+            final ArgsParser ah = new ArgsParser(ExtractCommand::showHelp);
             final Argument tgtOpt = ah.addArgument("target-dir");
 
-            ah.handle(args);
+            ah.parse(args);
 
             mTargetDir = new File(tgtOpt.getValue());
 

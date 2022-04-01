@@ -10,11 +10,11 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
- * Simple command line argument handler.
+ * Simple command line argument parser.
  *
  * @author rks
  */
-public class ArgsHandler {
+public class ArgsParser {
 
     private static final String OPT_START = "-";
     private static final String LONG_OPT_START = "--";
@@ -28,11 +28,11 @@ public class ArgsHandler {
     private List<String> mAdditionalArguments;
 
     /**
-     * Constructs a ArgsHandler.
+     * Constructs a ArgsParser.
      *
      * @param helpMethod void method to be called when '--help' encountered
      */
-    public ArgsHandler(final HelpCallback helpMethod) {
+    public ArgsParser(final HelpCallback helpMethod) {
         if (helpMethod == null) {
             throw new NullPointerException("Parameter helpMethod is null");
         }
@@ -110,32 +110,32 @@ public class ArgsHandler {
     }
 
     /**
-     * Handle the given command line arguments.
+     * Parse the given command line arguments.
      *
      * @param args the command line arguments
      * @throws CmdLineArgExcpetion on error during parsing. E.g. unknown option.
      */
-    public void handle(final String[] args) throws CmdLineArgExcpetion {
-        handle(new ArrayDeque<>(Arrays.asList(args)));
+    public void parse(final String[] args) throws CmdLineArgExcpetion {
+        parse(new ArrayDeque<>(Arrays.asList(args)));
     }
 
     /**
-     * Handle the given command line arguments.
+     * Parse the given command line arguments.
      *
      * @param argsList the command line arguments
      * @throws CmdLineArgExcpetion on error during parsing. E.g. unknown option.
      */
-    public void handle(final List<String> argsList) throws CmdLineArgExcpetion {
-        handle(new ArrayDeque<>(argsList));
+    public void parse(final List<String> argsList) throws CmdLineArgExcpetion {
+        parse(new ArrayDeque<>(argsList));
     }
 
     /**
-     * Handle the given command line arguments.
+     * Parse the given command line arguments.
      *
      * @param argsQueue the command line arguments
      * @throws CmdLineArgExcpetion on error during parsing. E.g. unknown option.
      */
-    public void handle(final Deque<String> argsQueue) throws CmdLineArgExcpetion {
+    public void parse(final Deque<String> argsQueue) throws CmdLineArgExcpetion {
 
         final Args args = new Args(argsQueue);
 
