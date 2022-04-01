@@ -48,6 +48,10 @@ class HttpRequest {
         return mHeaders.get(name);
     }
 
+    public boolean isKeepAlive() {
+        return "keep-alive".equals(mHeaders.get("Connection"));
+    }
+
     static class Builder {
         private String mMethod;
         private String mPath;

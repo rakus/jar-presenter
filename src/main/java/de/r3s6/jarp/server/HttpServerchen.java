@@ -128,43 +128,10 @@ public class HttpServerchen implements Closeable {
             final BufferedReader br = new BufferedReader(new InputStreamReader(client.getInputStream()));
 
             while (true) {
-                final List<String> lines = new ArrayList<>();
-                String line;
-                while ((line = br.readLine()) != null) {
-                    if (line.isBlank()) {
-                        break;
-                    }
-                    lines.add(line);
-                }
-
-                if (line == null) {
+                final HttpRequest req = readRequest(br);
+                if (req == null) {
                     return;
                 }
-
-                if (lines.size() < 2) {
-                    LOGGER.error("request to short: " + lines);
-                    return;
-                }
-
-                final HttpRequest.Builder builder = new HttpRequest.Builder();
-
-                final String[] requestParts = lines.get(0).split(" ");
-                if (requestParts.length < 3) { // NOCS: MagicNumber
-                    LOGGER.error("Invalid request: " + lines.get(0));
-                    return;
-                }
-
-                builder.method(requestParts[0]).path(requestParts[1]).version(requestParts[2]);
-
-                builder.host(lines.get(1).split(" ")[1]);
-
-                lines.stream().skip(2).forEach(s -> {
-                    final String name = s.substring(0, s.indexOf(":"));
-                    final String value = s.substring(s.indexOf(":") + 1).trim();
-                    builder.addHeader(name, value);
-                });
-
-                final HttpRequest req = builder.build();
                 LOGGER.request(req);
 
                 if (!"GET".equals(req.getMethod())) {
@@ -176,9 +143,9 @@ public class HttpServerchen implements Closeable {
                     sendBadRequestResponse(client, req.getUrl());
                 }
 
-                handleRequest(client, builder.build());
+                handleRequest(client, req);
 
-                if (!"keep-alive".equals(req.getHeader("Connection"))) {
+                if (!req.isKeepAlive()) {
                     // No keep-alive -> close
                     return;
                 }
@@ -199,6 +166,46 @@ public class HttpServerchen implements Closeable {
             }
 
         }
+    }
+
+    private HttpRequest readRequest(final BufferedReader br) throws IOException {
+        final List<String> lines = new ArrayList<>();
+        String line;
+        while ((line = br.readLine()) != null) {
+            if (line.isBlank()) {
+                break;
+            }
+            lines.add(line);
+        }
+
+        if (line == null) {
+            return null;
+        }
+
+        if (lines.size() < 2) {
+            LOGGER.error("request to short: " + lines);
+            return null;
+        }
+
+        final HttpRequest.Builder builder = new HttpRequest.Builder();
+
+        final String[] requestParts = lines.get(0).split(" ");
+        if (requestParts.length < 3) { // NOCS: MagicNumber
+            LOGGER.error("Invalid request: " + lines.get(0));
+            return null;
+        }
+
+        builder.method(requestParts[0]).path(requestParts[1]).version(requestParts[2]);
+
+        builder.host(lines.get(1).split(" ")[1]);
+
+        lines.stream().skip(2).forEach(s -> {
+            final String name = s.substring(0, s.indexOf(":"));
+            final String value = s.substring(s.indexOf(":") + 1).trim();
+            builder.addHeader(name, value);
+        });
+
+        return builder.build();
     }
 
     private boolean validatePath(final String path) {
