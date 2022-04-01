@@ -14,6 +14,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.time.OffsetDateTime;
 import java.util.Enumeration;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
@@ -67,6 +68,17 @@ public class JarpBuilder {
                 jar.closeEntry();
             }
 
+            // Add Manifest
+            final JarEntry tgtEntry = new JarEntry("META-INF/MANIFEST.MF");
+            jar.putNextEntry(tgtEntry);
+            final PrintWriter prt = new PrintWriter(jar);
+            prt.println("Manifest-Version: 1.0");
+            prt.println("Created-By: jar-presenter");
+            prt.println("Main-Class: de.r3s6.jarp.JarPresenter");
+            prt.printf("Jarp-build-date: %s\n", OffsetDateTime.now().toString());
+            prt.flush();
+            jar.closeEntry();
+
             System.out.println();
             System.out.println("New Jar created: " + targetFile);
 
@@ -79,6 +91,7 @@ public class JarpBuilder {
     }
 
     private void copyJarpClasses(final JarOutputStream jarx) throws IOException, URISyntaxException {
+        System.out.println("Copying java classes ...");
 
         final String jarpJarFile = new File(
                 JarpBuilder.class.getProtectionDomain().getCodeSource().getLocation().toURI()).getPath();
@@ -87,8 +100,7 @@ public class JarpBuilder {
             final Enumeration<JarEntry> enumEntries = jarpJar.entries();
             while (enumEntries.hasMoreElements()) {
                 final JarEntry jarEntry = enumEntries.nextElement();
-                if (jarEntry.getName().startsWith("de") || jarEntry.getName().startsWith("META-INF")) {
-                    System.out.println(".");
+                if (isJarpCode(jarEntry.getName())) {
                     if (jarEntry.isDirectory()) {
                         final JarEntry tgtEntry = new JarEntry(jarEntry.getName() + "/");
                         jarx.putNextEntry(tgtEntry);
@@ -107,15 +119,25 @@ public class JarpBuilder {
         }
     }
 
+    private boolean isJarpCode(final String entryName) {
+
+        switch (entryName) {
+        case "de":
+        case "de/r3s6":
+        case "de/r3s6/jarp":
+            return true;
+        default:
+            return entryName.startsWith("de/r3s6/jarp") && !entryName.startsWith("de/r3s6/jarp/maven");
+        }
+    }
+
     private void copyPresentation(final JarOutputStream jar, final String sourceDir, final String root)
             throws IOException {
-        System.out.println("copyPresentation");
-
+        System.out.println("Copying presentation ...");
         final Path searchRoot = Path.of(sourceDir);
 
         final FileVisitor<Path> visitor = new PackingVisitor(jar, searchRoot, root);
 
-        System.out.println(searchRoot);
         Files.walkFileTree(searchRoot, visitor);
 
     }
@@ -133,7 +155,6 @@ public class JarpBuilder {
 
         @Override
         public FileVisitResult preVisitDirectory(final Path dir, final BasicFileAttributes attrs) throws IOException {
-            System.out.println(".");
             final Path jarEntryPath = mSearchRoot.relativize(dir);
             final JarEntry entry = new JarEntry(mSubdir + "/" + jarEntryPath + "/");
             mJar.putNextEntry(entry);
@@ -144,7 +165,6 @@ public class JarpBuilder {
 
         @Override
         public FileVisitResult visitFile(final Path file, final BasicFileAttributes attrs) throws IOException {
-            System.out.println(".");
             final Path jarEntryPath = mSearchRoot.relativize(file);
 
             final JarEntry entry = new JarEntry(mSubdir + '/' + jarEntryPath);
