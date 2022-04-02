@@ -5,12 +5,9 @@ Prime Directives:
 * "Nice to have" is no reason
 
 * `server` command
-    * Only allow clients from localhost & option to allow any client.
-    * Expand content type detection. Maybe also look into the first bytes to
-      transfer.
-* `build` command
-    * Check presentation for `index.html`. Complain if not found and `-i` not
-      given.
+    * Only allow clients from localhost by default and add a option to allow
+      any client.
+    * Expand supported content types.
 * `extract` command
     * Don't create additional sub-dir `presentation`.
 
