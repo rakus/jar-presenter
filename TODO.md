@@ -8,7 +8,5 @@ Prime Directives:
     * Only allow clients from localhost by default and add a option to allow
       any client.
     * Expand supported content types.
-* `extract` command
-    * Don't create additional sub-dir `presentation`.
 
 

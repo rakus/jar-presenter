@@ -78,12 +78,16 @@ public final class ExtractCommand {
             final String jarFile = new File(
                     ExtractCommand.class.getProtectionDomain().getCodeSource().getLocation().toURI()).getPath();
 
+            final String preziPrefix = JarPresenter.PRESENTATION_DIR + "/";
+            final int preziPrefixLength = preziPrefix.length();
+
             try (JarFile jar = new JarFile(jarFile)) {
                 final Enumeration<JarEntry> enumEntries = jar.entries();
                 while (enumEntries.hasMoreElements()) {
                     final JarEntry jarEntry = enumEntries.nextElement();
-                    if (jarEntry.getName().startsWith(JarPresenter.PRESENTATION_DIR)) {
-                        final File tgtFile = new File(mTargetDir, jarEntry.getName());
+                    if (jarEntry.getName().startsWith(preziPrefix)) {
+                        final String tgtFileName = jarEntry.getName().substring(preziPrefixLength);
+                        final File tgtFile = new File(mTargetDir, tgtFileName);
                         if (jarEntry.isDirectory()) {
                             tgtFile.mkdir();
                             continue;
