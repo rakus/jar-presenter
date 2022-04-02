@@ -1,5 +1,6 @@
 package de.r3s6.jarp.build;
 
+import java.io.IOException;
 import java.util.Deque;
 
 import de.r3s6.jarp.args.ArgsParser;
@@ -65,7 +66,12 @@ public final class BuildCommand {
      * Actually executes the command.
      */
     public void execute() {
-        new JarpBuilder().build(mTargetJarName, mSrcDir, mIndexFile);
+        try {
+            new JarpBuilder().build(mTargetJarName, mSrcDir, mIndexFile);
+        } catch (final IOException | IllegalArgumentException e) {
+            System.err.println("ERROR: Creating jar failed: " + e);
+            System.exit(1);
+        }
     }
 
     /**
@@ -74,7 +80,11 @@ public final class BuildCommand {
     public static void showHelp() {
 
         System.out.println("build - build a NEW presentation jar for given presentation");
-        System.out.println("      USAGE: java -jar jar-presenter.jar build <new-jar-name> <presentation-dir>");
+        System.out.println(
+                "      USAGE: java -jar jar-presenter.jar build [-i <start-page>] <new-jar-name> <presentation-dir>");
+        System.out.println("        -i <start-page>");
+        System.out.println("                 defines the start page of the presentation to be used instead");
+        System.out.println("                 of index.html");
         System.out.println("        new-jar-name");
         System.out.println("                 name of the new jar to create");
         System.out.println("        presentation-dir");

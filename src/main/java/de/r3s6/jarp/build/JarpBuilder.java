@@ -3,6 +3,7 @@ package de.r3s6.jarp.build;
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -12,10 +13,15 @@ import java.nio.file.FileVisitResult;
 import java.nio.file.FileVisitor;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.time.OffsetDateTime;
+import java.util.Collections;
 import java.util.Enumeration;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Properties;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.jar.JarOutputStream;
@@ -35,21 +41,24 @@ public class JarpBuilder {
      *
      * @param targetJar       the new jar to create.
      * @param presentationDir directory with presentation to include in the jar
-     * @param initialHtml     name of the initil page to open (instead of
+     * @param initialHtml     name of the inital page to open (instead of
      *                        index.html)
+     * @throws IOException              on IO problems
+     * @throws IllegalArgumentException if expected files don't exist
      */
-    public void build(final String targetJar, final String presentationDir, final String initialHtml) {
+    public void build(final String targetJar, final String presentationDir, final String initialHtml)
+            throws IOException {
 
         final File targetFile = new File(targetJar);
         if (targetFile.exists()) {
-            System.err.println("Target JAR already exists: " + targetJar);
-            System.exit(1);
+            throw new IllegalArgumentException("Target JAR already exists: " + targetJar);
         }
 
         if (targetFile.toPath().startsWith(Path.of(presentationDir))) {
-            System.err.println("Target JAR and presentation locations overlap.");
-            System.exit(1);
+            throw new IllegalArgumentException("Target JAR and presentation locations overlap.");
         }
+
+        verifyIndexHtml(presentationDir, initialHtml);
 
         try (JarOutputStream jar = new JarOutputStream(new FileOutputStream(targetFile))) {
 
@@ -82,40 +91,85 @@ public class JarpBuilder {
             System.out.println();
             System.out.println("New Jar created: " + targetFile);
 
-        } catch (final IOException | URISyntaxException e) {
+        } catch (final IOException e) {
             if (targetFile.exists()) {
                 targetFile.delete();
             }
+            throw e;
         }
 
     }
 
-    private void copyJarpClasses(final JarOutputStream jarx) throws IOException, URISyntaxException {
+    private void verifyIndexHtml(final String presentationDir, final String initialHtml) throws IOException {
+
+        final Path filemapFile = Paths.get(presentationDir, JarPresenter.FILEMAP_BASENAME);
+        Path startPage = Paths.get(presentationDir, "index.html");
+
+        // if initialHtml is set, check if it exists
+        if (initialHtml != null) {
+            final Path iniHtml = Paths.get(presentationDir, initialHtml);
+            if (Files.exists(filemapFile)) {
+                throw new IllegalArgumentException(
+                        "Filemap file exists and initial HTML given. That doesn't make sense.");
+            }
+            startPage = iniHtml;
+        } else {
+            if (Files.exists(filemapFile)) {
+                final Map<String, String> filemap = readFilemap(filemapFile.toFile());
+                if (filemap.containsKey("/index.html")) {
+                    startPage = Path.of(presentationDir, filemap.get("/index.html").substring(1));
+                }
+            }
+        }
+
+        if (!Files.exists(startPage)) {
+            throw new FileNotFoundException(startPage.toString());
+        }
+    }
+
+    private Map<String, String> readFilemap(final File filemapFile) throws IOException {
+        try (InputStream in = new FileInputStream(filemapFile)) {
+            final Properties props = new Properties();
+            props.load(in);
+            final Map<String, String> map = new HashMap<>();
+            for (final Map.Entry<Object, Object> entry : props.entrySet()) {
+                map.put(String.valueOf(entry.getKey()), String.valueOf(entry.getValue()));
+            }
+            return Collections.unmodifiableMap(map);
+        }
+    }
+
+    private void copyJarpClasses(final JarOutputStream jarx) throws IOException {
         System.out.println("Copying java classes ...");
 
-        final String jarpJarFile = new File(
-                JarpBuilder.class.getProtectionDomain().getCodeSource().getLocation().toURI()).getPath();
+        try {
+            final String jarpJarFile = new File(
+                    JarpBuilder.class.getProtectionDomain().getCodeSource().getLocation().toURI()).getPath();
 
-        try (JarFile jarpJar = new JarFile(jarpJarFile)) {
-            final Enumeration<JarEntry> enumEntries = jarpJar.entries();
-            while (enumEntries.hasMoreElements()) {
-                final JarEntry jarEntry = enumEntries.nextElement();
-                if (isJarpCode(jarEntry.getName())) {
-                    if (jarEntry.isDirectory()) {
-                        final JarEntry tgtEntry = new JarEntry(jarEntry.getName() + "/");
-                        jarx.putNextEntry(tgtEntry);
-                        jarx.closeEntry();
-                    } else {
-                        final JarEntry tgtEntry = new JarEntry(jarEntry.getName());
-                        jarx.putNextEntry(tgtEntry);
-                        try (InputStream in = jarpJar.getInputStream(jarEntry)) {
-                            in.transferTo(jarx);
-                        } finally {
+            try (JarFile jarpJar = new JarFile(jarpJarFile)) {
+                final Enumeration<JarEntry> enumEntries = jarpJar.entries();
+                while (enumEntries.hasMoreElements()) {
+                    final JarEntry jarEntry = enumEntries.nextElement();
+                    if (isJarpCode(jarEntry.getName())) {
+                        if (jarEntry.isDirectory()) {
+                            final JarEntry tgtEntry = new JarEntry(jarEntry.getName() + "/");
+                            jarx.putNextEntry(tgtEntry);
                             jarx.closeEntry();
+                        } else {
+                            final JarEntry tgtEntry = new JarEntry(jarEntry.getName());
+                            jarx.putNextEntry(tgtEntry);
+                            try (InputStream in = jarpJar.getInputStream(jarEntry)) {
+                                in.transferTo(jarx);
+                            } finally {
+                                jarx.closeEntry();
+                            }
                         }
                     }
                 }
             }
+        } catch (final URISyntaxException e) {
+            // I think that this should never happen.
+            throw new RuntimeException("Unexpected exception: " + e, e);
         }
     }
 
