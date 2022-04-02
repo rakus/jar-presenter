@@ -68,15 +68,22 @@ public final class ExtractCommand {
     public void execute() {
         try {
 
+            final String jarFile = new File(
+                    ExtractCommand.class.getProtectionDomain().getCodeSource().getLocation().toURI()).getPath();
+
+            try (JarFile check = new JarFile(jarFile)) {
+                if (check.getEntry(JarPresenter.PRESENTATION_DIR) == null) {
+                    System.err.println("This jar doesn't contain a presentation. Nothing to do.");
+                    return;
+                }
+            }
+
             if (!mTargetDir.isDirectory()) {
                 if (!mTargetDir.mkdir()) {
                     System.err.println("ERROR: Can't create target dir: " + mTargetDir);
                     System.exit(1);
                 }
             }
-
-            final String jarFile = new File(
-                    ExtractCommand.class.getProtectionDomain().getCodeSource().getLocation().toURI()).getPath();
 
             final String preziPrefix = JarPresenter.PRESENTATION_DIR + "/";
             final int preziPrefixLength = preziPrefix.length();
