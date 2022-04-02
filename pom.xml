@@ -44,6 +44,7 @@
                 <configuration>
                     <archive>
                         <manifest>
+                            <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
                             <addClasspath>true</addClasspath>
                             <mainClass>de.r3s6.jarp.JarPresenter</mainClass>
                         </manifest>

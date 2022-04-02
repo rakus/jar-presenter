@@ -22,9 +22,12 @@ import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
+import java.util.jar.Attributes;
+import java.util.jar.Attributes.Name;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.jar.JarOutputStream;
+import java.util.jar.Manifest;
 
 import de.r3s6.jarp.JarPresenter;
 
@@ -60,7 +63,9 @@ public class JarpBuilder {
 
         verifyIndexHtml(presentationDir, initialHtml);
 
-        try (JarOutputStream jar = new JarOutputStream(new FileOutputStream(targetFile))) {
+        final Manifest manifest = createManifest();
+
+        try (JarOutputStream jar = new JarOutputStream(new FileOutputStream(targetFile), manifest)) {
 
             // copy classes
             copyJarpClasses(jar);
@@ -77,17 +82,6 @@ public class JarpBuilder {
                 jar.closeEntry();
             }
 
-            // Add Manifest
-            final JarEntry tgtEntry = new JarEntry("META-INF/MANIFEST.MF");
-            jar.putNextEntry(tgtEntry);
-            final PrintWriter prt = new PrintWriter(jar);
-            prt.println("Manifest-Version: 1.0");
-            prt.println("Created-By: jar-presenter");
-            prt.println("Main-Class: de.r3s6.jarp.JarPresenter");
-            prt.printf("Jarp-build-date: %s\n", OffsetDateTime.now().toString());
-            prt.flush();
-            jar.closeEntry();
-
             System.out.println();
             System.out.println("New Jar created: " + targetFile);
 
@@ -98,6 +92,21 @@ public class JarpBuilder {
             throw e;
         }
 
+    }
+
+    private Manifest createManifest() {
+
+        final Manifest mf = new Manifest();
+        final Attributes attr = mf.getMainAttributes();
+        attr.put(Attributes.Name.MANIFEST_VERSION, "1.0");
+        attr.put(Attributes.Name.IMPLEMENTATION_TITLE, JarPresenter.class.getPackage().getImplementationTitle());
+        attr.put(Attributes.Name.IMPLEMENTATION_VERSION, JarPresenter.class.getPackage().getImplementationVersion());
+        attr.put(Attributes.Name.MAIN_CLASS, JarPresenter.class.getName());
+
+        attr.put(new Name("Created-By"), "jar-presenter");
+        attr.put(new Name("Jarp-Build-Date"), OffsetDateTime.now().toString());
+
+        return mf;
     }
 
     private void verifyIndexHtml(final String presentationDir, final String initialHtml) throws IOException {
