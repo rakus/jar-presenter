@@ -4,7 +4,7 @@ import java.io.PrintStream;
 import java.time.LocalDateTime;
 
 /**
- * Logger vor server events.
+ * Logger for server events.
  *
  * Logs to STDOUT/ERR.
  *
@@ -69,7 +69,7 @@ final class Logger {
 
     void logResponseLine(final String line) {
         if (mVerbosity >= 3) { // NOCS: MagicNumber
-            doLog(System.out, ">>" + line + "<<", null);
+            doLog(System.out, "<<" + line, null);
         }
     }
 

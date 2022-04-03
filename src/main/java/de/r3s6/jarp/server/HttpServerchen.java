@@ -279,8 +279,6 @@ public class HttpServerchen implements Closeable {
     private void sendResponse(final Socket client, final HttpStatus status, final Map<String, String> headers,
             final String resource, final InputStream in) {
 
-        final String contentType = guessContentType(resource);
-
         LOGGER.status(status);
         try (HttpOutputStream clientOutput = new HttpOutputStream(client.getOutputStream())) {
             clientOutput.println("HTTP/1.1 " + status);
@@ -292,7 +290,12 @@ public class HttpServerchen implements Closeable {
             clientOutput.println("Expires: 0");
 
             if (in != null) {
-                clientOutput.println("ContentType: " + contentType);
+                final String[] typeInfo = ContentTypes.instance().guess(resource);
+
+                clientOutput.println("Content-Type: " + typeInfo[0]);
+                if (typeInfo[1] != null) {
+                    clientOutput.println("Content-Encoding: " + typeInfo[1]);
+                }
                 // No empty line here, as writeBody adds headers "Content-Length" or
                 // "Transfer-Encoding".
                 clientOutput.writeBody(in);
@@ -302,38 +305,6 @@ public class HttpServerchen implements Closeable {
             clientOutput.flush();
         } catch (final IOException e) {
             LOGGER.info("   response failed: " + e.toString());
-        }
-    }
-
-    private String guessContentType(final String path) {
-
-        String ext = path.substring(path.lastIndexOf('.') + 1);
-        ext = ext.toLowerCase();
-
-        switch (ext) {
-        case "html":
-            return "text/html";
-        case "css":
-            return "text/css";
-        case "js":
-            return "application/javascript";
-        case "png":
-            return "image/png";
-        case "gif":
-            return "image/gif";
-        case "jpg":
-        case "jpeg":
-            return "image/jpeg";
-        case "svg":
-            return "image/svg+xml; charset=UTF-8";
-        case "woff":
-            return "font/woff";
-        case "woff2":
-            return "font/woff2";
-        case "ttf":
-            return "font/ttf";
-        default:
-            return "application/octet-stream";
         }
     }
 
