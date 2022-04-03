@@ -316,7 +316,7 @@ public class HttpServerchen implements Closeable {
         case "css":
             return "text/css";
         case "js":
-            return "text/javascript";
+            return "application/javascript";
         case "png":
             return "image/png";
         case "gif":
@@ -331,7 +331,7 @@ public class HttpServerchen implements Closeable {
         case "woff2":
             return "font/woff2";
         case "ttf":
-            return "font/sfnt";
+            return "font/ttf";
         default:
             return "application/octet-stream";
         }
