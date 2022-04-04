@@ -161,7 +161,8 @@ public class JarpBuilder {
                     final JarEntry jarEntry = enumEntries.nextElement();
                     if (isJarpCode(jarEntry.getName())) {
                         if (jarEntry.isDirectory()) {
-                            final JarEntry tgtEntry = new JarEntry(jarEntry.getName() + "/");
+                            // no /-suffix needed, as it is already there
+                            final JarEntry tgtEntry = new JarEntry(jarEntry.getName());
                             jarx.putNextEntry(tgtEntry);
                             jarx.closeEntry();
                         } else {
