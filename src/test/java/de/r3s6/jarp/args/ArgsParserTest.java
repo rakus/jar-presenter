@@ -87,6 +87,74 @@ class ArgsParserTest {
     }
 
     @Test
+    void testUnknownOptionException() {
+        final ArgsParser aj = new ArgsParser(ArgsParserTest::showHelp);
+        aj.addFlag('d');
+
+        final CmdLineArgExcpetion ex = assertThrows(CmdLineArgExcpetion.class,
+                () -> aj.parse(Arrays.asList("-d", "-X")));
+
+        assertEquals("Unknown option: -X", ex.getMessage());
+    }
+
+    @Test
+    void testUnknownLongOptionException() {
+        final ArgsParser aj = new ArgsParser(ArgsParserTest::showHelp);
+        aj.addFlag('d');
+
+        final CmdLineArgExcpetion ex = assertThrows(CmdLineArgExcpetion.class,
+                () -> aj.parse(Arrays.asList("-d", "--unknown")));
+
+        assertEquals("Invalid option: --unknown", ex.getMessage());
+    }
+
+    @Test
+    void testDuplicateOptionDefinitionException() {
+        final ArgsParser aj = new ArgsParser(ArgsParserTest::showHelp);
+        aj.addFlag('d');
+
+        final IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> aj.addFlag('d'));
+
+        assertEquals("Option char 'd' already used", ex.getMessage());
+    }
+
+    @Test
+    void testIllegalOptionDefinitionDashException() {
+        final ArgsParser aj = new ArgsParser(ArgsParserTest::showHelp);
+
+        final IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> aj.addFlag('-'));
+
+        assertEquals("Invalid option char '-'", ex.getMessage());
+    }
+
+    @Test
+    void testIllegalOptionDefinitionNulException() {
+        final ArgsParser aj = new ArgsParser(ArgsParserTest::showHelp);
+
+        final IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> aj.addFlag((char) 0));
+
+        assertEquals("Invalid option char '\0'", ex.getMessage());
+    }
+
+    @Test
+    void testIllegalOptionDefinitionSpaceException() {
+        final ArgsParser aj = new ArgsParser(ArgsParserTest::showHelp);
+
+        final IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> aj.addFlag(' '));
+
+        assertEquals("Invalid option char ' '", ex.getMessage());
+    }
+
+    @Test
+    void testIllegalOptionDefinitionTabException() {
+        final ArgsParser aj = new ArgsParser(ArgsParserTest::showHelp);
+
+        final IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> aj.addFlag('\t'));
+
+        assertEquals("Invalid option char '\t'", ex.getMessage());
+    }
+
+    @Test
     void testCounter() throws CmdLineArgExcpetion {
         final ArgsParser aj = new ArgsParser(ArgsParserTest::showHelp);
         final Counter countOpt = aj.addCounter('v');

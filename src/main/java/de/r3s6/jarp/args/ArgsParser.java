@@ -48,6 +48,7 @@ public class ArgsParser {
      * @return the flag object. Updated when option is found.
      */
     public Flag addFlag(final char optionChar) {
+        validateOptionChar(optionChar);
         final Flag flag = new Flag(optionChar);
         mOptionMap.put(Character.valueOf(optionChar), flag);
         return flag;
@@ -60,6 +61,7 @@ public class ArgsParser {
      * @return the counter object. Updated when option is found.
      */
     public Counter addCounter(final char optionChar) {
+        validateOptionChar(optionChar);
         final Counter flag = new Counter(optionChar);
         mOptionMap.put(Character.valueOf(optionChar), flag);
         return flag;
@@ -83,6 +85,7 @@ public class ArgsParser {
      * @return the ValueOption object. Updated when option is found.
      */
     public ValueOption addValueOption(final char optionChar, final String defaultValue) {
+        validateOptionChar(optionChar);
         final ValueOption opt = new ValueOption(optionChar, defaultValue);
         mOptionMap.put(Character.valueOf(optionChar), opt);
         return opt;
@@ -154,7 +157,7 @@ public class ArgsParser {
                 } else if (param.startsWith(OPT_START)) {
                     final Option o = mOptionMap.get(param.charAt(1));
                     if (o == null) {
-                        throw new CmdLineArgExcpetion("Unknown Option: " + param);
+                        throw new CmdLineArgExcpetion("Unknown option: " + param);
                     } else if (!o.settable()) {
                         throw new CmdLineArgExcpetion("Duplicate option: " + param);
                     } else if (o instanceof Flag) {
@@ -170,8 +173,6 @@ public class ArgsParser {
                     } else {
                         throw new RuntimeException("Unknown option type");
                     }
-                } else {
-                    handleArg(param);
                 }
             } else {
                 handleArg(param);
@@ -183,6 +184,15 @@ public class ArgsParser {
                     + mArguments.stream().map(Argument::getName).collect(Collectors.joining(", ")));
         }
 
+    }
+
+    private void validateOptionChar(final char optionChar) {
+        if (optionChar == 0 || optionChar == '-' || Character.isWhitespace(optionChar)) {
+            throw new IllegalArgumentException("Invalid option char '" + optionChar + "'");
+        }
+        if (mOptionMap.containsKey(optionChar)) {
+            throw new IllegalArgumentException("Option char '" + optionChar + "' already used");
+        }
     }
 
     private void handleArg(final String param) throws CmdLineArgExcpetion {
