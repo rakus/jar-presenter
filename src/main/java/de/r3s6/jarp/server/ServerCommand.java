@@ -87,6 +87,7 @@ public final class ServerCommand {
         }
 
         // Should we use the gui.
+
         if ((wantGui || System.console() == null) && !GraphicsEnvironment.isHeadless()) {
             mUseGui = true;
         }
@@ -176,19 +177,16 @@ public final class ServerCommand {
         System.exit(0);
     }
 
-    private void reportError(final String message) {
-        reportError(message, null);
-
-    }
-
-    private void reportError(final String message, final Throwable thr) {
+    private void reportError(final String... messages) {
         if (mUseGui) {
             // Show gui error message
 
             final StringBuffer sb = new StringBuffer();
-            sb.append("<html><body><p>");
-            sb.append(message);
-            sb.append("</p></body></html>");
+            sb.append("<html><body>");
+            for (final String line : messages) {
+                sb.append("<p>").append(line).append("</p>");
+            }
+            sb.append("</body></html>");
 
             final JEditorPane msgPane = new JEditorPane("text/html", sb.toString());
             msgPane.setEditable(false);
@@ -198,7 +196,7 @@ public final class ServerCommand {
             JOptionPane.showOptionDialog(null, msgPane, "Jar-Presenter", JOptionPane.ERROR_MESSAGE,
                     JOptionPane.ERROR_MESSAGE, null, new String[] { "OK" }, null);
         } else {
-            System.err.println("ERROR: " + message);
+            System.err.println("ERROR: " + String.join(" ", messages));
         }
 
     }
@@ -250,7 +248,7 @@ public final class ServerCommand {
         try {
             processBuilder.start();
         } catch (final IOException e) {
-            reportError(String.format("Failed to start command '%s': %s\n", String.join(" ", command), e.toString()));
+            reportError("Failed to start command", String.join(" ", command), e.toString());
         }
     }
 
