@@ -36,7 +36,7 @@ public final class JarPresenter {
     public static void main(final String[] args) {
 
         if (args.length == 0) {
-            ServerCommand.create().serve();
+            ServerCommand.create().args(new ArrayDeque<String>()).serve();
         } else {
             final Deque<String> argList = new ArrayDeque<>(Arrays.asList(args));
             if ("--help".equals(argList.peekFirst())) {
