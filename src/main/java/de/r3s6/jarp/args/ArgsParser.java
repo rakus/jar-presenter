@@ -68,7 +68,7 @@ public class ArgsParser {
     }
 
     /**
-     * Adds a mValue option, that needs an additional argument.
+     * Adds a value option, that needs an additional argument.
      *
      * @param optionChar the option character
      * @return the ValueOption object. Updated when option is found.
@@ -78,10 +78,10 @@ public class ArgsParser {
     }
 
     /**
-     * Adds a mValue option with default mValue.
+     * Adds a value option with default value.
      *
      * @param optionChar   the option character
-     * @param defaultValue default mValue if option is not found on the command line
+     * @param defaultValue default value if option is not found on the command line
      * @return the ValueOption object. Updated when option is found.
      */
     public ValueOption addValueOption(final char optionChar, final String defaultValue) {
@@ -202,7 +202,7 @@ public class ArgsParser {
         } else if (mAdditionalArguments != null) {
             mAdditionalArguments.add(param);
         } else {
-            throw new CmdLineArgExcpetion("Superflous arguments starting with: " + param);
+            throw new CmdLineArgExcpetion("Superfluous arguments starting with: " + param);
         }
     }
 
@@ -269,11 +269,11 @@ public class ArgsParser {
         char getOptionChar();
 
         /**
-         * Whether the mValue of the option might be set.
+         * Whether the value of the option might be set.
          *
-         * Typiucally returns {@code false} when the option was already set.
+         * Typically returns {@code false} when the option was already set.
          *
-         * @return whether the option mValue can be set.
+         * @return whether the option value can be set.
          */
         boolean settable();
 
@@ -301,7 +301,7 @@ public class ArgsParser {
         }
 
         /**
-         * Gets the mValue of the option.
+         * Gets the value of the option.
          *
          * @return whether the option was given on the command line.
          */
@@ -339,7 +339,7 @@ public class ArgsParser {
         }
 
         /**
-         * Returns the numer of times the option was given on the command line.
+         * Returns the number of times the option was given on the command line.
          *
          * @return the option count
          */
@@ -353,7 +353,7 @@ public class ArgsParser {
     }
 
     /**
-     * Class representing a mValue option.
+     * Class representing a value option.
      */
     public static final class ValueOption implements Option {
         private final char mCharacter;
@@ -375,10 +375,10 @@ public class ArgsParser {
         }
 
         /**
-         * Returns the mValue parsed from the command line parameter or the default
-         * mValue (might be {@code null}.
+         * Returns the value parsed from the command line parameter or the default value
+         * (might be {@code null}.
          *
-         * @return the option mValue
+         * @return the option value
          */
         public String getValue() {
             return mValue;
@@ -405,9 +405,9 @@ public class ArgsParser {
         }
 
         /**
-         * Returns the argument mValue.
+         * Returns the argument value.
          *
-         * @return the argument mValue
+         * @return the argument value
          */
         public String getValue() {
             return mValue;

@@ -223,9 +223,9 @@ class ArgsParserTest {
         aj.addArgument("jar");
 
         final CmdLineArgExcpetion ex = assertThrows(CmdLineArgExcpetion.class,
-                () -> aj.parse(Arrays.asList("-d", "jarp.jar", "superflous")));
+                () -> aj.parse(Arrays.asList("-d", "jarp.jar", "superfluous")));
 
-        assertEquals("Superflous arguments starting with: superflous", ex.getMessage());
+        assertEquals("Superfluous arguments starting with: superfluous", ex.getMessage());
     }
 
     @Test
