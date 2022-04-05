@@ -21,11 +21,11 @@ public enum OsType {
     static {
         // Simple try to detect the operating system.
         final String osString = System.getProperty("os.name", "generic").toLowerCase(Locale.ENGLISH);
-        if ((osString.indexOf("mac") >= 0) || (osString.indexOf("darwin") >= 0)) {
+        if (osString.contains("mac") || osString.contains("darwin")) {
             DETECTED = MacOS;
-        } else if (osString.indexOf("win") >= 0) {
+        } else if (osString.contains("windows")) {
             DETECTED = Windows;
-        } else if (osString.indexOf("nux") >= 0) {
+        } else if (osString.contains("linux")) {
             DETECTED = Linux;
         } else {
             DETECTED = Other;

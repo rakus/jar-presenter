@@ -239,8 +239,8 @@ public final class ServerCommand {
             command = new String[] { "open", uri.toString() };
             break;
         default:
-            // Linux and other unixoid systems
-            command = new String[] { "nohup", "xdg-open", uri.toString() };
+            // Linux and other systems. Assuming "other" is some unix-like flavor.
+            command = new String[] { "xdg-open", uri.toString() };
             break;
         }
 
