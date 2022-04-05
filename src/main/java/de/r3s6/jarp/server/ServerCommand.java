@@ -33,6 +33,8 @@ public final class ServerCommand {
     private boolean mUseGui;
 
     private ServerCommand() {
+        // If not connected to console, but GUI available, use GUI
+        mUseGui = System.console() == null && !GraphicsEnvironment.isHeadless();
     }
 
     /**
@@ -86,9 +88,8 @@ public final class ServerCommand {
             System.exit(1);
         }
 
-        // Should we use the gui.
-
-        if ((wantGui || System.console() == null) && !GraphicsEnvironment.isHeadless()) {
+        // mUseGui default is set in constructor
+        if (wantGui) {
             mUseGui = true;
         }
 
