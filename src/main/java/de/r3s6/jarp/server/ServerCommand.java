@@ -232,7 +232,7 @@ public final class ServerCommand {
 
         switch (OsType.DETECTED) {
         case Windows:
-            command = new String[] { "start", uri.toString() };
+            command = new String[] { "cmd", "/C", "start", uri.toString() };
             break;
         case MacOS:
             command = new String[] { "open", uri.toString() };
