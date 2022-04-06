@@ -280,29 +280,24 @@ public class HttpServerchen implements Closeable {
             final String resource, final InputStream in) {
 
         LOGGER.status(status);
-        try (HttpOutputStream clientOutput = new HttpOutputStream(client.getOutputStream())) {
-            clientOutput.println("HTTP/1.1 " + status);
+        try (HttpResponseStream clientOutput = new HttpResponseStream(client.getOutputStream(), status)) {
             for (final Entry<String, String> entry : headers.entrySet()) {
-                clientOutput.println(entry.getKey() + ": " + entry.getValue());
+                clientOutput.header(entry.getKey(), entry.getValue());
             }
-            clientOutput.println("Cache-Control: no-cache, no-store, must-revalidate");
-            clientOutput.println("Pragma: no-cache");
-            clientOutput.println("Expires: 0");
+            clientOutput.header("Cache-Control", "no-cache, no-store, must-revalidate");
+            clientOutput.header("Pragma", "no-cache");
+            clientOutput.header("Expires", "0");
 
             if (in != null) {
                 final String[] typeInfo = ContentTypes.instance().guess(resource);
 
-                clientOutput.println("Content-Type: " + typeInfo[0]);
+                clientOutput.header("Content-Type", typeInfo[0]);
                 if (typeInfo[1] != null) {
-                    clientOutput.println("Content-Encoding: " + typeInfo[1]);
+                    clientOutput.header("Content-Encoding", typeInfo[1]);
                 }
-                // No empty line here, as writeBody adds headers "Content-Length" or
-                // "Transfer-Encoding".
+                // writeBody adds headers "Content-Length" or "Transfer-Encoding".
                 clientOutput.writeBody(in);
             }
-            clientOutput.println();
-            clientOutput.println();
-            clientOutput.flush();
         } catch (final IOException e) {
             LOGGER.info("   response failed: " + e.toString());
         }
