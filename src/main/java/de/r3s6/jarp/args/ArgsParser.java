@@ -7,6 +7,7 @@ import java.util.Deque;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
@@ -20,7 +21,7 @@ public class ArgsParser {
     private static final String LONG_OPT_START = "--";
     private static final String OPT_ARG_DELIM = "--";
 
-    private final HelpCallback mHelpMethod;
+    private final Runnable mHelpMethod;
 
     private Map<Character, Option> mOptionMap = new HashMap<>();
 
@@ -30,13 +31,11 @@ public class ArgsParser {
     /**
      * Constructs a ArgsParser.
      *
-     * @param helpMethod void method to be called when '--help' encountered
+     * @param helpMethod {@link Runnable} to call when '--help' encountered.
+     *                   Required.
      */
-    public ArgsParser(final HelpCallback helpMethod) {
-        if (helpMethod == null) {
-            throw new NullPointerException("Parameter helpMethod is null");
-        }
-        this.mHelpMethod = helpMethod;
+    public ArgsParser(final Runnable helpMethod) {
+        mHelpMethod = Objects.requireNonNull(helpMethod, "Parameter helpMethod is null");
     }
 
     /**
@@ -48,10 +47,7 @@ public class ArgsParser {
      * @return the flag object. Updated when option is found.
      */
     public Flag addFlag(final char optionChar) {
-        validateOptionChar(optionChar);
-        final Flag flag = new Flag(optionChar);
-        mOptionMap.put(Character.valueOf(optionChar), flag);
-        return flag;
+        return registerOption(new Flag(optionChar));
     }
 
     /**
@@ -61,10 +57,7 @@ public class ArgsParser {
      * @return the counter object. Updated when option is found.
      */
     public Counter addCounter(final char optionChar) {
-        validateOptionChar(optionChar);
-        final Counter flag = new Counter(optionChar);
-        mOptionMap.put(Character.valueOf(optionChar), flag);
-        return flag;
+        return registerOption(new Counter(optionChar));
     }
 
     /**
@@ -74,21 +67,19 @@ public class ArgsParser {
      * @return the ValueOption object. Updated when option is found.
      */
     public ValueOption addValueOption(final char optionChar) {
-        return addValueOption(optionChar, null);
+        return registerOption(new ValueOption(optionChar));
     }
 
-    /**
-     * Adds a value option with default value.
-     *
-     * @param optionChar   the option character
-     * @param defaultValue default value if option is not found on the command line
-     * @return the ValueOption object. Updated when option is found.
-     */
-    public ValueOption addValueOption(final char optionChar, final String defaultValue) {
-        validateOptionChar(optionChar);
-        final ValueOption opt = new ValueOption(optionChar, defaultValue);
-        mOptionMap.put(Character.valueOf(optionChar), opt);
-        return opt;
+    private <T extends Option> T registerOption(final T option) {
+        final char optionChar = option.getOptionChar();
+        if (optionChar == 0 || optionChar == '-' || Character.isWhitespace(optionChar)) {
+            throw new IllegalArgumentException("Invalid option char '" + optionChar + "'");
+        }
+        if (mOptionMap.containsKey(optionChar)) {
+            throw new IllegalArgumentException("Option char '" + optionChar + "' already used");
+        }
+        mOptionMap.put(Character.valueOf(optionChar), option);
+        return option;
     }
 
     /**
@@ -150,7 +141,7 @@ public class ArgsParser {
                 if (OPT_ARG_DELIM.equals(param)) {
                     argsOnly = true;
                 } else if ("--help".equals(param)) {
-                    mHelpMethod.accept();
+                    mHelpMethod.run();
                     System.exit(0);
                 } else if (param.startsWith(LONG_OPT_START)) {
                     throw new CmdLineArgExcpetion("Invalid option: " + param);
@@ -184,15 +175,6 @@ public class ArgsParser {
                     + mArguments.stream().map(Argument::getName).collect(Collectors.joining(", ")));
         }
 
-    }
-
-    private void validateOptionChar(final char optionChar) {
-        if (optionChar == 0 || optionChar == '-' || Character.isWhitespace(optionChar)) {
-            throw new IllegalArgumentException("Invalid option char '" + optionChar + "'");
-        }
-        if (mOptionMap.containsKey(optionChar)) {
-            throw new IllegalArgumentException("Option char '" + optionChar + "' already used");
-        }
     }
 
     private void handleArg(final String param) throws CmdLineArgExcpetion {
@@ -251,22 +233,27 @@ public class ArgsParser {
             }
             return ret;
         }
-
     }
 
     /**
      * Interface for Options.
-     *
-     * @author rks
      */
-    protected interface Option {
+    private abstract static class Option {
+
+        private final char mCharacter;
+
+        private Option(final char character) {
+            mCharacter = character;
+        }
 
         /**
          * Returns the option character.
          *
          * @return the option character
          */
-        char getOptionChar();
+        char getOptionChar() {
+            return mCharacter;
+        }
 
         /**
          * Whether the value of the option might be set.
@@ -275,28 +262,22 @@ public class ArgsParser {
          *
          * @return whether the option value can be set.
          */
-        boolean settable();
+        abstract boolean settable();
 
     }
 
     /**
      * Class representing a boolean option.
      */
-    public static final class Flag implements Option {
-        private final char mCharacter;
+    public static final class Flag extends Option {
         private boolean mValue;
 
         private Flag(final char character) {
-            this.mCharacter = character;
+            super(character);
         }
 
         @Override
-        public char getOptionChar() {
-            return mCharacter;
-        }
-
-        @Override
-        public boolean settable() {
+        boolean settable() {
             return !mValue;
         }
 
@@ -317,24 +298,18 @@ public class ArgsParser {
     /**
      * Class representing a counting option.
      */
-    public static final class Counter implements Option {
-        private final char mCharacter;
+    public static final class Counter extends Option {
         private int mValue;
 
         private Counter(final char character) {
-            this.mCharacter = character;
-        }
-
-        @Override
-        public char getOptionChar() {
-            return mCharacter;
+            super(character);
         }
 
         /**
          * Always returns true. {@inheritDoc}
          */
         @Override
-        public boolean settable() {
+        boolean settable() {
             return true;
         }
 
@@ -355,22 +330,15 @@ public class ArgsParser {
     /**
      * Class representing a value option.
      */
-    public static final class ValueOption implements Option {
-        private final char mCharacter;
+    public static final class ValueOption extends Option {
         private String mValue;
 
-        private ValueOption(final char character, final String defaultValue) {
-            this.mCharacter = character;
-            this.mValue = defaultValue;
+        private ValueOption(final char character) {
+            super(character);
         }
 
         @Override
-        public char getOptionChar() {
-            return mCharacter;
-        }
-
-        @Override
-        public boolean settable() {
+        boolean settable() {
             return mValue == null;
         }
 

@@ -249,4 +249,12 @@ class ArgsParserTest {
 
         assertEquals("Missing value for option: -o", ex.getMessage());
     }
+
+    @Test
+    void testHelpMethodNull() throws CmdLineArgExcpetion {
+
+        final NullPointerException ex = assertThrows(NullPointerException.class, () -> new ArgsParser(null));
+
+        assertEquals("Parameter helpMethod is null", ex.getMessage());
+    }
 }
