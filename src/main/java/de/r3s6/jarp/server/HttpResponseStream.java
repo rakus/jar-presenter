@@ -1,17 +1,21 @@
 package de.r3s6.jarp.server;
 
+import java.io.BufferedOutputStream;
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.Map;
+import java.util.Map.Entry;
 
 /**
- * Special stream for HTTP responses, that handles chunked transfer.
+ * Special stream for a HTTP response, that handles chunked transfer.
  *
- * This is not fail safe. The methods {@link #header(String, String)} and
- * {@link #writeBody(byte[])} or {@link #writeBody(InputStream)} has to be
- * called in the right sequence.
+ * This is not fail safe. The methods {@link #header(String, String)} or
+ * {@link #headers(Map)} and {@link #writeBody(byte[])} or
+ * {@link #writeBody(InputStream)} has to be called in the right sequence. The
+ * message is completed by calling close.
  *
  * <b>IMPORTANT</b>: Closing the response will just flush the underlying output
  * steam but will NOT close it!
@@ -22,9 +26,21 @@ public class HttpResponseStream implements Closeable {
 
     private static final Logger LOGGER = Logger.instance();
 
+    private static final String SRV_VERSION;
+    static {
+        final String version = HttpResponseStream.class.getPackage().getImplementationVersion();
+        if (version != null) {
+            SRV_VERSION = version;
+        } else {
+            SRV_VERSION = "UNKNOWN";
+        }
+    }
+
     private static final byte[] NL = utf8Bytes("\r\n");
 
     private final OutputStream mDelegate;
+
+    private boolean mHeaderFinished;
 
     /**
      * HttpOutputStream wrapped around given stream.
@@ -34,8 +50,10 @@ public class HttpResponseStream implements Closeable {
      * @throws IOException when writing status failed
      */
     public HttpResponseStream(final OutputStream out, final HttpStatus status) throws IOException {
-        mDelegate = out;
-        println("HTTP/1.1" + status);
+        mDelegate = new BufferedOutputStream(out);
+
+        println("HTTP/1.1 " + status);
+        header("Server", "Jar Presenter v" + SRV_VERSION);
     }
 
     /**
@@ -53,6 +71,23 @@ public class HttpResponseStream implements Closeable {
     }
 
     /**
+     * Writes headers to the stream.
+     *
+     * The headers are written in random order. Entries containing {@code null} for
+     * key or value are ignored.
+     *
+     * @param headers map of header-name to header value.
+     * @throws IOException when writing a header fails
+     */
+    public void headers(final Map<String, String> headers) throws IOException {
+        for (final Entry<String, String> hdr : headers.entrySet()) {
+            if (hdr.getKey() != null && hdr.getValue() != null) {
+                println(hdr.getKey() + ": " + hdr.getValue());
+            }
+        }
+    }
+
+    /**
      * Writes the response body with chunked transfer if needed.
      *
      * @param in stream to read the body
@@ -66,12 +101,12 @@ public class HttpResponseStream implements Closeable {
         if (cnt < bufferSize) {
             // one go
             println("Content-Length: " + cnt);
-            println();
+            finishHeader();
             write(buffer, 0, cnt);
         } else {
             // Chunked transfer
             println("Transfer-Encoding: chunked");
-            println();
+            finishHeader();
             println(Integer.toHexString(cnt));
             write(buffer, 0, cnt);
             while ((cnt = in.readNBytes(buffer, 0, bufferSize)) > 0) {
@@ -81,9 +116,8 @@ public class HttpResponseStream implements Closeable {
             }
             println();
             println("0");
+            println();
         }
-        println();
-        println();
     }
 
     /**
@@ -94,10 +128,8 @@ public class HttpResponseStream implements Closeable {
      */
     public void writeBody(final byte[] buffer) throws IOException {
         println("Content-Length: " + buffer.length);
-        println();
+        finishHeader();
         write(buffer);
-        println();
-        println();
     }
 
     /**
@@ -107,8 +139,22 @@ public class HttpResponseStream implements Closeable {
      */
     @Override
     public void close() throws IOException {
+        if (!mHeaderFinished) {
+            println();
+        }
         System.err.flush();
         mDelegate.flush();
+    }
+
+    /**
+     * Write the empty line at the end of the headers and set
+     * {@link #mHeaderFinished} to {@code true}.
+     *
+     * @throws IOException when writing fails.
+     */
+    private void finishHeader() throws IOException {
+        mHeaderFinished = true;
+        println();
     }
 
     /**

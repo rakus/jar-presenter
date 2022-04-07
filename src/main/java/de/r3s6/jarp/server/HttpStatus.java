@@ -24,6 +24,10 @@ public enum HttpStatus {
         mPhrase = reasonPhrase;
     }
 
+    public int getIntValue() {
+        return mIntValue;
+    }
+
     @Override
     public String toString() {
         return mIntValue + " " + mPhrase;

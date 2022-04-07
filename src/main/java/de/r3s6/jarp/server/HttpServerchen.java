@@ -10,14 +10,12 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
 import java.net.SocketTimeoutException;
-import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Properties;
 
 import de.r3s6.jarp.JarPresenter;
@@ -127,7 +125,7 @@ public class HttpServerchen implements Closeable {
         try {
             final BufferedReader br = new BufferedReader(new InputStreamReader(client.getInputStream()));
 
-            while (true) {
+            while (!client.isClosed() && !client.isInputShutdown()) {
                 final HttpRequest req = readRequest(br);
                 if (req == null) {
                     return;
@@ -135,27 +133,33 @@ public class HttpServerchen implements Closeable {
                 LOGGER.request(req);
 
                 if (!"GET".equals(req.getMethod())) {
-                    sendMethodNotAllowedResponse(client);
+                    sendMethodNotAllowedResponse(client, req);
+                    /*
+                     * Close - there might be additional lines in the input stream we can't handle.
+                     * E.g. POST request.
+                     */
                     return;
                 }
 
                 if (!validatePath(req.getPath())) {
-                    sendBadRequestResponse(client, req.getUrl());
+                    sendBadRequestResponse(client, req);
+                } else {
+                    handleRequest(client, req);
+
+                    if (!req.isKeepAlive()) {
+                        // No keep-alive -> close
+                        return;
+                    }
                 }
-
-                handleRequest(client, req);
-
-                if (!req.isKeepAlive()) {
-                    // No keep-alive -> close
-                    return;
-                }
-
             }
         } catch (final SocketException e) {
             // IGNORED Most likely socket closed by client
+            LOGGER.debug(e.toString(), e);
         } catch (final SocketTimeoutException e) {
             // IGNORED No incoming data for long time. Closing Socket.
+            LOGGER.debug(e.toString());
         } catch (final IOException e) {
+            LOGGER.error(e.toString(), e);
             e.printStackTrace();
         } finally {
             try {
@@ -171,14 +175,21 @@ public class HttpServerchen implements Closeable {
     private HttpRequest readRequest(final BufferedReader br) throws IOException {
         final List<String> lines = new ArrayList<>();
         String line;
+        boolean firstLine = true;
         while ((line = br.readLine()) != null) {
             if (line.isBlank()) {
-                break;
+                // Server should ignore one empty line before the request.
+                if (!firstLine) {
+                    break;
+                }
+            } else {
+                lines.add(line);
             }
-            lines.add(line);
+            firstLine = false;
         }
 
         if (line == null) {
+            LOGGER.debug("No Request -- client closed");
             return null;
         }
 
@@ -225,64 +236,61 @@ public class HttpServerchen implements Closeable {
 
     private void handleRequest(final Socket client, final HttpRequest request) {
 
-        try {
-            final String fn = "/".equals(request.getPath()) ? "/index.html" : request.getPath();
+        final String fn = "/".equals(request.getPath()) ? "/index.html" : request.getPath();
 
-            LOGGER.info("Serving: " + fn);
+        final String resource = mRootDir + mFileMap.getOrDefault(fn, fn);
+        LOGGER.debug("Serving: " + request.getPath() + " -> " + resource);
 
-            final String resource = mRootDir + mFileMap.getOrDefault(fn, fn);
+        try (InputStream in = this.getClass().getClassLoader().getResourceAsStream(resource)) {
 
-            try (InputStream in = this.getClass().getClassLoader().getResourceAsStream(resource)) {
-
-                if (in != null) {
-                    sendResponse(client, HttpStatus.OK, Collections.emptyMap(), resource, in);
-                } else {
-                    // 404
-                    send404Response(client, request.getUrl());
-                }
-            } catch (final IOException e) {
-                LOGGER.info("Error closing response: " + e.toString());
+            if (in != null) {
+                sendResponse(client, request, HttpStatus.OK, Collections.emptyMap(), resource, in);
+            } else {
+                // 404
+                send404Response(client, request);
             }
-        } finally {
-            try {
-                client.close();
-            } catch (final IOException e) {
-                LOGGER.info("Socket close failed: " + e.toString());
-            }
-
+        } catch (final IOException e) {
+            LOGGER.debug("Error closing resource: " + e.toString());
         }
+
     }
 
-    private void sendMethodNotAllowedResponse(final Socket client) {
+    private void sendMethodNotAllowedResponse(final Socket client, final HttpRequest request) throws IOException {
         final Map<String, String> headers = new HashMap<>();
         headers.put("Allow", "GET");
 
-        sendResponse(client, HttpStatus.METHOD_NOT_ALLOWED, Collections.emptyMap(), null, null);
+        sendResponse(client, request, HttpStatus.METHOD_NOT_ALLOWED, Collections.emptyMap(), null, null);
     }
 
-    private void sendBadRequestResponse(final Socket client, final URL url) {
-        sendHtmlResponse(client, HttpStatus.BAD_REQUEST, String.format(HTTP400_FMT, url.toString()));
+    private void sendBadRequestResponse(final Socket client, final HttpRequest request) {
+        sendHtmlResponse(client, request, HttpStatus.BAD_REQUEST,
+                String.format(HTTP400_FMT, request.getUrl().toString()));
     }
 
-    private void send404Response(final Socket client, final URL url) {
-        sendHtmlResponse(client, HttpStatus.NOT_FOUND, String.format(HTTP404_FMT, url.toString()));
+    private void send404Response(final Socket client, final HttpRequest request) {
+        sendHtmlResponse(client, request, HttpStatus.NOT_FOUND,
+                String.format(HTTP404_FMT, request.getUrl().toString()));
     }
 
-    private void sendHtmlResponse(final Socket client, final HttpStatus status, final String content) {
+    private void sendHtmlResponse(final Socket client, final HttpRequest request, final HttpStatus status,
+            final String content) {
         try (InputStream in = new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8))) {
-            sendResponse(client, status, Collections.emptyMap(), ".html", in);
+            sendResponse(client, request, status, Collections.emptyMap(), ".html", in);
         } catch (final IOException e) {
             LOGGER.info("Error creating HTML response: " + e.toString());
         }
     }
 
-    private void sendResponse(final Socket client, final HttpStatus status, final Map<String, String> headers,
-            final String resource, final InputStream in) {
+    // CSOFF: ParameterNumber
+    private void sendResponse(final Socket client, final HttpRequest request, final HttpStatus status,
+            final Map<String, String> headers, final String resource, final InputStream in) throws IOException {
 
-        LOGGER.status(status);
+        LOGGER.info(String.format("%d %s", status.getIntValue(), request.getPath()));
+
         try (HttpResponseStream clientOutput = new HttpResponseStream(client.getOutputStream(), status)) {
-            for (final Entry<String, String> entry : headers.entrySet()) {
-                clientOutput.header(entry.getKey(), entry.getValue());
+            clientOutput.headers(headers);
+            if (request.isKeepAlive()) {
+                clientOutput.header("Connection", "keep-alive");
             }
             clientOutput.header("Cache-Control", "no-cache, no-store, must-revalidate");
             clientOutput.header("Pragma", "no-cache");
@@ -298,10 +306,9 @@ public class HttpServerchen implements Closeable {
                 // writeBody adds headers "Content-Length" or "Transfer-Encoding".
                 clientOutput.writeBody(in);
             }
-        } catch (final IOException e) {
-            LOGGER.info("   response failed: " + e.toString());
         }
     }
+    // CSON: ParameterNumber
 
     @Override
     public void close() {

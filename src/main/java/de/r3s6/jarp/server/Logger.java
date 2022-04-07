@@ -51,6 +51,12 @@ final class Logger {
         }
     }
 
+    void debug(final String message, final Throwable thr) {
+        if (mVerbosity >= 3) { // NOCS: MagicNumber
+            doLog(System.out, message, thr);
+        }
+    }
+
     void request(final HttpRequest request) {
         if (mVerbosity >= 2) {
             final StringBuilder sb = new StringBuilder();
