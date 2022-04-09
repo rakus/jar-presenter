@@ -1,3 +1,9 @@
+/*
+ * Copyright 2022 Ralf Schandl
+ *
+ * Distributed under MIT license.
+ * See file LICENSE for detail or visit https://opensource.org/licenses/MIT
+ */
 package de.r3s6.jarp.server;
 
 import java.io.BufferedOutputStream;
@@ -20,7 +26,7 @@ import java.util.Map.Entry;
  * <b>IMPORTANT</b>: Closing the response will just flush the underlying output
  * steam but will NOT close it!
  *
- * @author rks
+ * @author Ralf Schandl
  */
 public class HttpResponseStream implements Closeable {
 

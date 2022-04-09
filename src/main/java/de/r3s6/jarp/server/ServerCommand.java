@@ -1,3 +1,9 @@
+/*
+ * Copyright 2022 Ralf Schandl
+ *
+ * Distributed under MIT license.
+ * See file LICENSE for detail or visit https://opensource.org/licenses/MIT
+ */
 package de.r3s6.jarp.server;
 
 import java.awt.BorderLayout;
@@ -29,7 +35,7 @@ import de.r3s6.jarp.args.CmdLineArgExcpetion;
  * Command that starts a HTTP server and serves the presentation. directory in
  * the sub-folder "presentation".
  *
- * @author rks
+ * @author Ralf Schandl
  */
 public final class ServerCommand {
 
@@ -59,10 +65,6 @@ public final class ServerCommand {
      * @return this
      */
     public ServerCommand args(final Deque<String> args) {
-        // -b start default browser
-        // -B <browser cmd>
-        // -p <port> start Server on this port
-        // -v verbose, use multiple times to increase verbosity
 
         boolean wantTerminal = false;
         try {
@@ -83,7 +85,7 @@ public final class ServerCommand {
             if (optionalArgs.size() == 1) {
                 setPort(optionalArgs.get(0));
             } else if (optionalArgs.size() > 1) {
-                System.err.println("Superflous arguments beginning with: " + optionalArgs.get(1));
+                System.err.println("Superfluous arguments beginning with: " + optionalArgs.get(1));
                 showHelp();
                 System.exit(1);
             }
@@ -156,11 +158,6 @@ public final class ServerCommand {
                 System.out.println();
             } else {
                 EventQueue.invokeLater(() -> showGuiDialog(uri));
-//                new Thread(() -> {
-//                    showGuiDialog(uri);
-//                    // System.exit(0);
-//                }).start();
-
             }
 
             if (mStartBrowser) {

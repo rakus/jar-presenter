@@ -1,9 +1,15 @@
+/*
+ * Copyright 2022 Ralf Schandl
+ *
+ * Distributed under MIT license.
+ * See file LICENSE for detail or visit https://opensource.org/licenses/MIT
+ */
 package de.r3s6.jarp.server;
 
 /**
  * HttpStatus enum with just the values we need.
  *
- * @author rks
+ * @author Ralf Schandl
  */
 public enum HttpStatus {
 

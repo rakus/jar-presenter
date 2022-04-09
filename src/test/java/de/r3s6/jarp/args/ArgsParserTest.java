@@ -19,7 +19,7 @@ import de.r3s6.jarp.args.ArgsParser.ValueOption;
 class ArgsParserTest {
 
     public static void showHelp() {
-        // Intenionally left blank
+        // Intentionally left blank
     }
 
     @Test

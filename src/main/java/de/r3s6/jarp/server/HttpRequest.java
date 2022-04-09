@@ -1,3 +1,9 @@
+/*
+ * Copyright 2022 Ralf Schandl
+ *
+ * Distributed under MIT license.
+ * See file LICENSE for detail or visit https://opensource.org/licenses/MIT
+ */
 package de.r3s6.jarp.server;
 
 import java.net.MalformedURLException;
@@ -9,7 +15,7 @@ import java.util.Map;
 /**
  * Represents a simple TTP request.
  *
- * @author rks
+ * @author Ralf Schandl
  */
 class HttpRequest {
     private final String mMethod;

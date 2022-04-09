@@ -1,3 +1,9 @@
+/*
+ * Copyright 2022 Ralf Schandl
+ *
+ * Distributed under MIT license.
+ * See file LICENSE for detail or visit https://opensource.org/licenses/MIT
+ */
 package de.r3s6.jarp.build;
 
 import java.io.IOException;
@@ -10,7 +16,7 @@ import de.r3s6.jarp.args.CmdLineArgExcpetion;
  * Command to build a new jar-presenter file with the classes from the current
  * jar file and a given presentation.
  *
- * @author rks
+ * @author Ralf Schandl
  */
 public final class BuildCommand {
 
@@ -37,9 +43,6 @@ public final class BuildCommand {
      * @return this.
      */
     public BuildCommand args(final Deque<String> args) {
-        // -i index-html-name.html
-        // <jar-name>
-        // <presentation-dir>
 
         try {
             final ArgsParser ah = new ArgsParser(BuildCommand::showHelp);

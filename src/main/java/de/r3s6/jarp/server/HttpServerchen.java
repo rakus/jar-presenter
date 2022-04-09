@@ -1,3 +1,9 @@
+/*
+ * Copyright 2022 Ralf Schandl
+ *
+ * Distributed under MIT license.
+ * See file LICENSE for detail or visit https://opensource.org/licenses/MIT
+ */
 package de.r3s6.jarp.server;
 
 import java.io.BufferedReader;
@@ -21,21 +27,21 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 
 import de.r3s6.jarp.JarPresenter;
+import de.r3s6.jarp.Utilities;
 
 /**
- * The most trivial HTTP server.
+ * A minimalistic HTTP server.
  *
- * Only serves resources available via classpath. No support for keepalive. No
- * security, nothing.
+ * Only serves resources available via classpath using GET. No other requests
+ * supported. No security!
  *
  * BTW: In German the suffix "chen" is used to minimize something. Like a
  * "Schiff" (ship) is rather big. Like a cruise ship. A "SchiffCHEN" is pretty
  * small. Down to a kids toy.
  *
- * @author rks
+ * @author Ralf Schandl
  *
  */
 public class HttpServerchen implements Closeable {
@@ -73,7 +79,7 @@ public class HttpServerchen implements Closeable {
         // backlog = 0 -> "an implementation specific default will be used"
         mServerSocket = new ServerSocket(port, 0, InetAddress.getByName("localhost"));
         this.mRootDir = rootDir;
-        this.mFileMap = readMapTable();
+        this.mFileMap = Utilities.readPropertyMapResource(mRootDir + "/" + JarPresenter.FILEMAP_BASENAME);
     }
 
     /**
@@ -84,23 +90,6 @@ public class HttpServerchen implements Closeable {
      */
     public HttpServerchen(final int port) throws IOException {
         this(port, JarPresenter.PRESENTATION_DIR);
-    }
-
-    private Map<String, String> readMapTable() throws IOException {
-        try (InputStream in = this.getClass().getClassLoader()
-                .getResourceAsStream(mRootDir + "/" + JarPresenter.FILEMAP_BASENAME)) {
-            if (in != null) {
-                final Properties props = new Properties();
-                props.load(in);
-                final Map<String, String> map = new HashMap<>();
-                for (final Map.Entry<Object, Object> entry : props.entrySet()) {
-                    map.put(String.valueOf(entry.getKey()), String.valueOf(entry.getValue()));
-                }
-                return Collections.unmodifiableMap(map);
-            } else {
-                return Collections.emptyMap();
-            }
-        }
     }
 
     public int getPort() {

@@ -1,3 +1,9 @@
+/*
+ * Copyright 2022 Ralf Schandl
+ *
+ * Distributed under MIT license.
+ * See file LICENSE for detail or visit https://opensource.org/licenses/MIT
+ */
 package de.r3s6.jarp.build;
 
 import java.io.BufferedInputStream;
@@ -35,7 +41,7 @@ import de.r3s6.jarp.JarPresenter;
  * Builder to create a new jar-presenter file with the classes from the current
  * jar file and a given presentation.
  *
- * @author rks
+ * @author Ralf Schandl
  */
 public class JarpBuilder {
 
@@ -44,7 +50,7 @@ public class JarpBuilder {
      *
      * @param targetJar       the new jar to create.
      * @param presentationDir directory with presentation to include in the jar
-     * @param initialHtml     name of the inital page to open (instead of
+     * @param initialHtml     name of the initial page to open (instead of
      *                        index.html)
      * @throws IOException              on IO problems
      * @throws IllegalArgumentException if expected files don't exist

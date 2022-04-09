@@ -2,11 +2,19 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-
     <groupId>de.r3s6.jarp</groupId>
     <artifactId>jar-presenter</artifactId>
     <version>0.1.0-SNAPSHOT</version>
     <packaging>jar</packaging>
+
+    <name>Jar Presenter</name>
+    <inceptionYear>2022</inceptionYear>
+    <description>
+        Jar Presenter is a tool to package a web-based presentation with a
+        minimalistic HTTP server into a executable jar.
+    </description>
+
+    <url>https://github.com/rakus/jar-presenter</url>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -80,13 +88,12 @@
                     <dependency>
                         <groupId>com.puppycrawl.tools</groupId>
                         <artifactId>checkstyle</artifactId>
-                        <version>8.44</version>
+                        <version>10.1</version>
                     </dependency>
                 </dependencies>
             </plugin>
         </plugins>
     </build>
-
 
     <profiles>
         <profile>

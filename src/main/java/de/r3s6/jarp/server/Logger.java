@@ -1,3 +1,9 @@
+/*
+ * Copyright 2022 Ralf Schandl
+ *
+ * Distributed under MIT license.
+ * See file LICENSE for detail or visit https://opensource.org/licenses/MIT
+ */
 package de.r3s6.jarp.server;
 
 import java.io.PrintStream;
@@ -8,7 +14,7 @@ import java.time.LocalDateTime;
  *
  * Logs to STDOUT/ERR.
  *
- * @author rks
+ * @author Ralf Schandl
  */
 final class Logger {
 

@@ -1,3 +1,9 @@
+/*
+ * Copyright 2022 Ralf Schandl
+ *
+ * Distributed under MIT license.
+ * See file LICENSE for detail or visit https://opensource.org/licenses/MIT
+ */
 package de.r3s6.jarp.server;
 
 import java.util.Locale;
@@ -7,7 +13,7 @@ import java.util.Locale;
  *
  * The constant {@link #DETECTED} contains the detected OS type.
  *
- * @author rks
+ * @author Ralf Schandl
  */
 public enum OsType {
     // CSOFF: Javadoc

@@ -1,3 +1,9 @@
+/*
+ * Copyright 2022 Ralf Schandl
+ *
+ * Distributed under MIT license.
+ * See file LICENSE for detail or visit https://opensource.org/licenses/MIT
+ */
 package de.r3s6.jarp.args;
 
 import java.util.ArrayDeque;
@@ -13,7 +19,7 @@ import java.util.stream.Collectors;
 /**
  * Simple command line argument parser.
  *
- * @author rks
+ * @author Ralf Schandl
  */
 public class ArgsParser {
 

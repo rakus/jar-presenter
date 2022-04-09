@@ -1,3 +1,9 @@
+/*
+ * Copyright 2022 Ralf Schandl
+ *
+ * Distributed under MIT license.
+ * See file LICENSE for detail or visit https://opensource.org/licenses/MIT
+ */
 package de.r3s6.jarp.extract;
 
 import java.io.File;
@@ -16,10 +22,10 @@ import de.r3s6.jarp.args.ArgsParser.Argument;
 import de.r3s6.jarp.args.CmdLineArgExcpetion;
 
 /**
- * Extract command extracts the presentation from the jar to the current
- * directory in the sub-folder "presentation".
+ * Extract command extracts the presentation from the jar to a given directory
+ * in the sub-folder "presentation".
  *
- * @author rks
+ * @author Ralf Schandl
  */
 public final class ExtractCommand {
 
