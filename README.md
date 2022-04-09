@@ -13,19 +13,17 @@ HTTP server and serves the presentation included in the jar.
 If requested with `-b` the default web browser is started automatically and
 will show the presentation.
 
-I called with `-g` or starting without a terminal (double click in a file
-explorer), a GUI dialog is opened. It shows the server address and has a button
-to stop the server.
+By default a small GUI dialog is opened to show the server address and to
+stop the server. Use `-t` to use terminal only.
 
 Help output:
 ```
 $ java -jar jar-presenter-0.1.0-SNAPSHOT.jar server --help
 server - starts a web server to serve the presentation
-      USAGE: java -jar jar-presenter.jar server [-b] [-v] [port]
+      USAGE: java -jar jar-presenter.jar server [-b] [-v] [-t] [port]
         -b       immediately start the (default) browser
         -v       increase logging output
-        -g       Use gui to report that server is running. Default when no
-                 terminal is attached.
+        -t       Terminal mode. Don't start GUI.
         port     use given port (default is random)
 ```
 

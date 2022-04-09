@@ -1,5 +1,7 @@
 package de.r3s6.jarp.server;
 
+import java.awt.BorderLayout;
+import java.awt.EventQueue;
 import java.awt.GraphicsEnvironment;
 import java.io.IOException;
 import java.lang.ProcessBuilder.Redirect;
@@ -8,9 +10,13 @@ import java.util.ArrayList;
 import java.util.Deque;
 import java.util.List;
 
+import javax.swing.Icon;
+import javax.swing.JButton;
 import javax.swing.JEditorPane;
+import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
+import javax.swing.UIManager;
 import javax.swing.event.HyperlinkEvent;
 import javax.swing.event.HyperlinkListener;
 
@@ -30,11 +36,11 @@ public final class ServerCommand {
     private boolean mStartBrowser;
     private int mServerPort;
     private int mVerbosity;
-    private boolean mUseGui;
+    private boolean mUseTerminal;
 
     private ServerCommand() {
-        // If not connected to console, but GUI available, use GUI
-        mUseGui = System.console() == null && !GraphicsEnvironment.isHeadless();
+        // If no GUI available, use terminal
+        mUseTerminal = GraphicsEnvironment.isHeadless();
     }
 
     /**
@@ -58,13 +64,13 @@ public final class ServerCommand {
         // -p <port> start Server on this port
         // -v verbose, use multiple times to increase verbosity
 
-        boolean wantGui = false;
+        boolean wantTerminal = false;
         try {
             final ArgsParser ah = new ArgsParser(ServerCommand::showHelp);
 
             final Flag browserOpt = ah.addFlag('b');
             final Counter verboseOpt = ah.addCounter('v');
-            final Flag guiOpt = ah.addFlag('g');
+            final Flag terminalOpt = ah.addFlag('t');
             final List<String> optionalArgs = new ArrayList<>();
             ah.optionalArgumentList(optionalArgs);
 
@@ -72,7 +78,7 @@ public final class ServerCommand {
 
             mStartBrowser = browserOpt.getValue();
             mVerbosity = verboseOpt.getValue();
-            wantGui = guiOpt.getValue();
+            wantTerminal = terminalOpt.getValue();
 
             if (optionalArgs.size() == 1) {
                 setPort(optionalArgs.get(0));
@@ -88,9 +94,9 @@ public final class ServerCommand {
             System.exit(1);
         }
 
-        // mUseGui default is set in constructor
-        if (wantGui) {
-            mUseGui = true;
+        // mUseTerminal might already be set if no GUI possible
+        if (wantTerminal) {
+            mUseTerminal = true;
         }
 
         return this;
@@ -102,19 +108,15 @@ public final class ServerCommand {
     public static void showHelp() {
 
         System.out.println("server - starts a web server to serve the presentation");
-        System.out.println("      USAGE: java -jar jar-presenter.jar server [-b] [-v] [-g] [port]");
+        System.out.println("      USAGE: java -jar jar-presenter.jar server [-b] [-v] [-t] [port]");
         System.out.println("        -b       immediately start the (default) browser");
         System.out.println("        -v       increase logging output");
-        System.out.println("        -g       Use gui to report that server is running. Default when no");
-        System.out.println("                 terminal is attached.");
+        System.out.println("        -t       Terminal mode. Don't start GUI.");
         System.out.println("        port     use given port (default is random)");
 
     }
 
     private void setPort(final String fetchArgument) {
-        if (fetchArgument == null) {
-            throw new RuntimeException("Missing argument for -p");
-        }
         final int port = Integer.parseInt(fetchArgument);
         if (port < 0 && port > 65535) { // NOCS: MagicNumber
             throw new RuntimeException("Port out of range 0 - 65535");
@@ -146,18 +148,19 @@ public final class ServerCommand {
 
             final URI uri = URI.create("http://localhost:" + port);
 
-            if (mUseGui) {
-                new Thread(() -> {
-                    showGuiDialog(uri);
-                    System.exit(0);
-                }).start();
-
-            } else {
+            if (mUseTerminal) {
                 final String message = "Serving on " + uri
                         + "\n\nPoint your browser to that address to see the presentation";
                 System.out.println();
                 System.out.println(message);
                 System.out.println();
+            } else {
+                EventQueue.invokeLater(() -> showGuiDialog(uri));
+//                new Thread(() -> {
+//                    showGuiDialog(uri);
+//                    // System.exit(0);
+//                }).start();
+
             }
 
             if (mStartBrowser) {
@@ -179,7 +182,9 @@ public final class ServerCommand {
     }
 
     private void reportError(final String... messages) {
-        if (mUseGui) {
+        if (mUseTerminal) {
+            System.err.println("ERROR: " + String.join(" ", messages));
+        } else {
             // Show gui error message
 
             final StringBuffer sb = new StringBuffer();
@@ -196,8 +201,6 @@ public final class ServerCommand {
             // show
             JOptionPane.showOptionDialog(null, msgPane, "Jar-Presenter", JOptionPane.ERROR_MESSAGE,
                     JOptionPane.ERROR_MESSAGE, null, new String[] { "OK" }, null);
-        } else {
-            System.err.println("ERROR: " + String.join(" ", messages));
         }
 
     }
@@ -221,9 +224,22 @@ public final class ServerCommand {
             }
         });
 
-        // show
-        JOptionPane.showOptionDialog(null, msgPane, "Jar-Presenter", JOptionPane.PLAIN_MESSAGE,
-                JOptionPane.INFORMATION_MESSAGE, null, new String[] { "Stop Server" }, null);
+        final JButton stopButton = new JButton("Stop Server");
+        stopButton.addActionListener(e -> {
+            System.exit(0);
+        });
+
+        final Icon icon = UIManager.getIcon("OptionPane.informationIcon");
+
+        final JOptionPane optPane = new JOptionPane(msgPane, JOptionPane.PLAIN_MESSAGE, JOptionPane.INFORMATION_MESSAGE,
+                icon, new Object[] { stopButton });
+
+        final JFrame frame = new JFrame("Jar Presentation Server");
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frame.getContentPane().add(optPane, BorderLayout.CENTER);
+        frame.pack();
+        frame.setLocationRelativeTo(null);
+        frame.setVisible(true);
     }
 
     private void openBrowser(final URI uri) {
