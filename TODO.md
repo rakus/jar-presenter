@@ -6,7 +6,7 @@
 
 # Todo
 * `server` command
-    * Only allow clients from localhost by default and add a option to allow
-      any client.
+    * Server binds to localhost and thus only allows clients from localhost.
+      Should it have a option to allow any client? Hmmm - dangerous.
 
 

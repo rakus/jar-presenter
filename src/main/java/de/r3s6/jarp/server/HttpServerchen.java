@@ -6,10 +6,15 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.net.HttpRetryException;
+import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
 import java.net.SocketTimeoutException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -37,13 +42,12 @@ public class HttpServerchen implements Closeable {
 
     private static final Logger LOGGER = Logger.instance();
 
-    private static final String HTTP404_FMT = "<html><head><title>Not Found</title></head>"
+    private static final String HTTP404_FMT = "<html><head><meta charset=\"utf-8\"><title>Not Found</title></head>"
             + "<body><p>The requested resource could not be found.</p>"
             + "<tt>%s</tt><p><sub>jar presenter</sub></p></body></html>";
 
-    private static final String HTTP400_FMT = "<html><head><title>Bad Request</title></head>"
-            + "<body><p>The requested resource path is invalid.</p>"
-            + "<tt>%s</tt><p><sub>jar presenter</sub></p></body></html>";
+    private static final String HTTP400_FMT = "<html><head><meta charset=\"utf-8\"><title>Bad Request</title></head>"
+            + "<body><p>%s</p><tt>%s</tt><p><sub>jar presenter</sub></p></body></html>";
 
     /** Close socket when client send nothing within 60 seconds. */
     private static final int SOCKET_TIMEOUT = 60 * 1000;
@@ -66,7 +70,8 @@ public class HttpServerchen implements Closeable {
      * @throws IOException if reading the filemap files produces it.
      */
     public HttpServerchen(final int port, final String rootDir) throws IOException {
-        mServerSocket = new ServerSocket(port);
+        // backlog = 0 -> "an implementation specific default will be used"
+        mServerSocket = new ServerSocket(port, 0, InetAddress.getByName("localhost"));
         this.mRootDir = rootDir;
         this.mFileMap = readMapTable();
     }
@@ -142,7 +147,7 @@ public class HttpServerchen implements Closeable {
                 }
 
                 if (!validatePath(req.getPath())) {
-                    sendBadRequestResponse(client, req);
+                    sendBadRequestResponse(client, req, "Invalid request path", req.getPath());
                 } else {
                     handleRequest(client, req);
 
@@ -161,6 +166,8 @@ public class HttpServerchen implements Closeable {
         } catch (final IOException e) {
             LOGGER.error(e.toString(), e);
             e.printStackTrace();
+        } catch (final InvalidRequestException e) {
+            sendBadRequestResponse(client, null, "Can't understand request", e.getMessage());
         } finally {
             try {
                 LOGGER.debug("Closing socket connection");
@@ -172,7 +179,16 @@ public class HttpServerchen implements Closeable {
         }
     }
 
-    private HttpRequest readRequest(final BufferedReader br) throws IOException {
+    /**
+     * Reads a HTTP request from the given reader.
+     *
+     * @param br the reader to read from
+     * @return a parsed {@link HttpRetryException}
+     * @throws IOException             if reading fails
+     * @throws InvalidRequestException if something is wrong with the request. E.g.
+     *                                 Format error
+     */
+    private HttpRequest readRequest(final BufferedReader br) throws IOException, InvalidRequestException {
         final List<String> lines = new ArrayList<>();
         String line;
         boolean firstLine = true;
@@ -201,12 +217,11 @@ public class HttpServerchen implements Closeable {
         final HttpRequest.Builder builder = new HttpRequest.Builder();
 
         final String[] requestParts = lines.get(0).split(" ");
-        if (requestParts.length < 3) { // NOCS: MagicNumber
-            LOGGER.error("Invalid request: " + lines.get(0));
-            return null;
-        }
+        validateRequest(lines.get(0), requestParts);
 
-        builder.method(requestParts[0]).path(requestParts[1]).version(requestParts[2]);
+        builder.method(requestParts[0])
+                .path(URLDecoder.decode(requestParts[1], StandardCharsets.UTF_8))
+                .version(requestParts[2]);
 
         builder.host(lines.get(1).split(" ")[1]);
 
@@ -217,6 +232,48 @@ public class HttpServerchen implements Closeable {
         });
 
         return builder.build();
+    }
+
+    private void validateRequest(final String requestLine, final String[] requestParts) throws InvalidRequestException {
+        if (requestParts.length != 3) { // NOCS: MagicNumber
+            throw new InvalidRequestException("Invalid request line: " + requestLine);
+        }
+        // check the method
+        switch (requestParts[0]) {
+        case "OPTIONS":
+        case "GET":
+        case "HEAD":
+        case "POST":
+        case "PUT":
+        case "DELETE":
+        case "TRACE":
+        case "CONNECT":
+            // OK
+            break;
+        default:
+            throw new InvalidRequestException("Unknown method: " + requestLine);
+        }
+
+        // check the Request-URI
+        if (!requestParts[1].startsWith("/")) {
+            if (requestParts[1].startsWith("http://")) {
+                // parse the URI and extract the path, ignore host.
+                try {
+                    final URI uri = new URI(requestParts[1]);
+                    requestParts[1] = uri.getRawPath();
+                } catch (final URISyntaxException e) {
+                    throw new InvalidRequestException("Invalid Request-URI: " + requestLine);
+                }
+            } else {
+                throw new InvalidRequestException("Invalid Request-URI: " + requestLine);
+            }
+
+        }
+
+        // check the protocol
+        if (!requestParts[2].startsWith("HTTP/1")) {
+            throw new InvalidRequestException("Unknown protocol: " + requestLine);
+        }
     }
 
     private boolean validatePath(final String path) {
@@ -262,9 +319,10 @@ public class HttpServerchen implements Closeable {
         sendResponse(client, request, HttpStatus.METHOD_NOT_ALLOWED, Collections.emptyMap(), null, null);
     }
 
-    private void sendBadRequestResponse(final Socket client, final HttpRequest request) {
+    private void sendBadRequestResponse(final Socket client, final HttpRequest request, final String reason,
+            final String entity) {
         sendHtmlResponse(client, request, HttpStatus.BAD_REQUEST,
-                String.format(HTTP400_FMT, request.getUrl().toString()));
+                String.format(HTTP400_FMT, reason, entity));
     }
 
     private void send404Response(final Socket client, final HttpRequest request) {
@@ -282,15 +340,19 @@ public class HttpServerchen implements Closeable {
     }
 
     // CSOFF: ParameterNumber
+    // WARNING: request might be null
     private void sendResponse(final Socket client, final HttpRequest request, final HttpStatus status,
             final Map<String, String> headers, final String resource, final InputStream in) throws IOException {
 
-        LOGGER.info(String.format("%d %s", status.getIntValue(), request.getPath()));
+        LOGGER.info(
+                String.format("%d %s", status.getIntValue(), request != null ? request.getPath() : "INVALID REQUEST"));
 
         try (HttpResponseStream clientOutput = new HttpResponseStream(client.getOutputStream(), status)) {
             clientOutput.headers(headers);
-            if (request.isKeepAlive()) {
+            if (request != null && request.isKeepAlive()) {
                 clientOutput.header("Connection", "keep-alive");
+            } else {
+                clientOutput.header("Connection", "close");
             }
             clientOutput.header("Cache-Control", "no-cache, no-store, must-revalidate");
             clientOutput.header("Pragma", "no-cache");
@@ -319,5 +381,18 @@ public class HttpServerchen implements Closeable {
                 e.printStackTrace();
             }
         }
+    }
+
+    /**
+     * Reports that something with the HTTP request is wrong.
+     */
+    private static final class InvalidRequestException extends Exception {
+
+        private static final long serialVersionUID = 1L;
+
+        private InvalidRequestException(final String message) {
+            super(message);
+        }
+
     }
 }

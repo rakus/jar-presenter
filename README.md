@@ -27,6 +27,16 @@ server - starts a web server to serve the presentation
         port     use given port (default is random)
 ```
 
+---
+**IMPORTANT**
+
+The minimalist HTTP server
+* does not implement any security
+* assumes a well behaving client (e.g. a "standard" browser)
+* only accepts request via localhost
+---
+
+
 ### Extract
 With the sub-command `extract` the contained presentation is extracted to the
 given directory in the sub-directory `presentation`.
