@@ -19,6 +19,7 @@ import java.util.jar.JarFile;
 import de.r3s6.jarp.JarPresenter;
 import de.r3s6.jarp.args.ArgsParser;
 import de.r3s6.jarp.args.ArgsParser.Argument;
+import de.r3s6.jarp.args.ArgsParser.Flag;
 import de.r3s6.jarp.args.CmdLineArgExcpetion;
 
 /**
@@ -30,6 +31,11 @@ import de.r3s6.jarp.args.CmdLineArgExcpetion;
 public final class ExtractCommand {
 
     private File mTargetDir;
+
+    /**
+     * Whether to overwrite existing files ('-f').
+     */
+    private boolean mForce;
 
     private ExtractCommand() {
     }
@@ -53,11 +59,13 @@ public final class ExtractCommand {
 
         try {
             final ArgsParser ah = new ArgsParser(ExtractCommand::showHelp);
+            final Flag force = ah.addFlag('f');
             final Argument tgtOpt = ah.addArgument("target-dir");
 
             ah.parse(args);
 
             mTargetDir = new File(tgtOpt.getValue());
+            mForce = force.getValue();
 
         } catch (final CmdLineArgExcpetion e) {
             System.err.println(e.getMessage());
@@ -102,10 +110,14 @@ public final class ExtractCommand {
                         final String tgtFileName = jarEntry.getName().substring(preziPrefixLength);
                         final File tgtFile = new File(mTargetDir, tgtFileName);
                         if (jarEntry.isDirectory()) {
-                            tgtFile.mkdir();
+                            tgtFile.mkdirs();
                             continue;
                         }
                         System.out.println("Extracting to " + tgtFile);
+                        if (tgtFile.exists() && !mForce) {
+                            System.err.println("File exists -- use '-f' to overwrite: " + tgtFile);
+                            System.exit(1);
+                        }
                         try (InputStream is = jar.getInputStream(jarEntry);
                                 FileOutputStream fos = new FileOutputStream(tgtFile)) {
                             is.transferTo(fos);
@@ -125,7 +137,8 @@ public final class ExtractCommand {
     public static void showHelp() {
 
         System.out.println("extract - extract the contained presentation to the given directory");
-        System.out.println("      USAGE: java -jar jar-presenter.jar extract <target-dir>");
+        System.out.println("      USAGE: java -jar jar-presenter.jar extract [-f] <target-dir>");
+        System.out.println("        -f   Overwrite existing files.");
 
     }
 

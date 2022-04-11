@@ -39,13 +39,15 @@ The minimalist HTTP server
 
 ### Extract
 With the sub-command `extract` the contained presentation is extracted to the
-given directory in the sub-directory `presentation`.
+given directory. The directory is created if it doesn't exist.
+
 
 Help output:
 ```
 $ java -jar jar-presenter-0.1.0-SNAPSHOT.jar extract --help
 extract - extract the contained presentation to the given directory
-      USAGE: java -jar jar-presenter.jar extract <target-dir>
+      USAGE: java -jar jar-presenter.jar extract [-f] <target-dir>
+        -f   Overwrite existing files.
 ```
 
 ### Build
