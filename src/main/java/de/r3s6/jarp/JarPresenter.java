@@ -64,7 +64,6 @@ public final class JarPresenter {
                 break;
             case "build":
                 BuildCommand.create().args(argList).execute();
-                System.exit(1);
                 break;
             case "help":
                 showHelp();
