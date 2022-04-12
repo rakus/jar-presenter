@@ -11,11 +11,11 @@ package de.r3s6.jarp.args;
  *
  * @author Ralf Schandl
  */
-public class CmdLineArgExcpetion extends Exception {
+public class CmdLineArgException extends Exception {
 
     private static final long serialVersionUID = 1L;
 
-    CmdLineArgExcpetion(final String message) {
+    CmdLineArgException(final String message) {
         super(message);
     }
 

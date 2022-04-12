@@ -6,11 +6,10 @@
  */
 package de.r3s6.jarp.args;
 
-import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Deque;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -113,31 +112,21 @@ public class ArgsParser {
      * Parse the given command line arguments.
      *
      * @param args the command line arguments
-     * @throws CmdLineArgExcpetion on error during parsing. E.g. unknown option.
+     * @throws CmdLineArgException on error during parsing. E.g. unknown option.
      */
-    public void parse(final String[] args) throws CmdLineArgExcpetion {
-        parse(new ArrayDeque<>(Arrays.asList(args)));
+    public void parse(final String[] args) throws CmdLineArgException {
+        parse(Arrays.asList(args));
     }
 
     /**
      * Parse the given command line arguments.
      *
      * @param argsList the command line arguments
-     * @throws CmdLineArgExcpetion on error during parsing. E.g. unknown option.
+     * @throws CmdLineArgException on error during parsing. E.g. unknown option.
      */
-    public void parse(final List<String> argsList) throws CmdLineArgExcpetion {
-        parse(new ArrayDeque<>(argsList));
-    }
+    public void parse(final List<String> argsList) throws CmdLineArgException {
 
-    /**
-     * Parse the given command line arguments.
-     *
-     * @param argsQueue the command line arguments
-     * @throws CmdLineArgExcpetion on error during parsing. E.g. unknown option.
-     */
-    public void parse(final Deque<String> argsQueue) throws CmdLineArgExcpetion {
-
-        final Args args = new Args(argsQueue);
+        final Args args = new Args(argsList);
 
         boolean argsOnly = false;
 
@@ -150,13 +139,13 @@ public class ArgsParser {
                     mHelpMethod.run();
                     System.exit(0);
                 } else if (param.startsWith(LONG_OPT_START)) {
-                    throw new CmdLineArgExcpetion("Invalid option: " + param);
+                    throw new CmdLineArgException("Invalid option: " + param);
                 } else if (param.startsWith(OPT_START)) {
                     final Option o = mOptionMap.get(param.charAt(1));
                     if (o == null) {
-                        throw new CmdLineArgExcpetion("Unknown option: " + param);
+                        throw new CmdLineArgException("Unknown option: " + param);
                     } else if (!o.settable()) {
-                        throw new CmdLineArgExcpetion("Duplicate option: " + param);
+                        throw new CmdLineArgException("Duplicate option: " + param);
                     } else if (o instanceof Flag) {
                         ((Flag) o).found();
                     } else if (o instanceof Counter) {
@@ -164,7 +153,7 @@ public class ArgsParser {
                     } else if (o instanceof ValueOption) {
                         final String value = args.fetchArgument();
                         if (value == null) {
-                            throw new CmdLineArgExcpetion("Missing value for option: " + param);
+                            throw new CmdLineArgException("Missing value for option: " + param);
                         }
                         ((ValueOption) o).found(value);
                     } else {
@@ -177,29 +166,29 @@ public class ArgsParser {
         }
 
         if (!mArguments.isEmpty()) {
-            throw new CmdLineArgExcpetion("Missing argument(s): "
+            throw new CmdLineArgException("Missing argument(s): "
                     + mArguments.stream().map(Argument::getName).collect(Collectors.joining(", ")));
         }
 
     }
 
-    private void handleArg(final String param) throws CmdLineArgExcpetion {
+    private void handleArg(final String param) throws CmdLineArgException {
         if (mArguments.size() > 0) {
             final Argument arg = mArguments.remove(0);
             arg.found(param);
         } else if (mAdditionalArguments != null) {
             mAdditionalArguments.add(param);
         } else {
-            throw new CmdLineArgExcpetion("Superfluous arguments starting with: " + param);
+            throw new CmdLineArgException("Superfluous arguments starting with: " + param);
         }
     }
 
     private final class Args {
-        private final Deque<String> mArgs;
+        private final Iterator<String> mArgs;
         private String mRest;
 
-        private Args(final Deque<String> args) {
-            this.mArgs = args;
+        private Args(final List<String> args) {
+            this.mArgs = args.iterator();
         }
 
         private String next() {
@@ -208,8 +197,8 @@ public class ArgsParser {
                 ret = OPT_START + mRest.charAt(0);
                 mRest = mRest.substring(1);
             } else {
-                if (mArgs.size() != 0) {
-                    final String a = mArgs.poll();
+                if (mArgs.hasNext()) {
+                    final String a = mArgs.next();
                     if (a.startsWith(LONG_OPT_START)) {
                         ret = a;
                     } else if (a.startsWith(OPT_START)) {
@@ -231,8 +220,8 @@ public class ArgsParser {
                 ret = mRest;
                 mRest = null;
             } else {
-                if (mArgs.size() != 0) {
-                    ret = mArgs.poll();
+                if (mArgs.hasNext()) {
+                    ret = mArgs.next();
                 } else {
                     return null;
                 }

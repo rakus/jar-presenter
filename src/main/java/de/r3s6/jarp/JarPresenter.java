@@ -6,9 +6,10 @@
  */
 package de.r3s6.jarp;
 
-import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Deque;
+import java.util.Collections;
+import java.util.List;
 
 import de.r3s6.jarp.build.BuildCommand;
 import de.r3s6.jarp.extract.ExtractCommand;
@@ -44,37 +45,38 @@ public final class JarPresenter {
     public static void main(final String[] args) {
 
         if (args.length == 0) {
-            ServerCommand.create().args(new ArrayDeque<String>()).serve();
+            ServerCommand.create().execute(Collections.emptyList());
         } else {
-            final Deque<String> argList = new ArrayDeque<>(Arrays.asList(args));
-            if ("--help".equals(argList.peekFirst())) {
+            if ("--help".equals(args[0])) {
                 showHelp();
                 System.exit(0);
-            } else if (argList.peekFirst().startsWith("-") || argList.peekFirst().matches("^\\d*$")) {
+            } else if (args[0].startsWith("-") || args[0].matches("^\\d*$")) {
                 // No command -> default is "server"
-                ServerCommand.create().args(argList).serve();
-            }
-            final String command = argList.poll();
-            switch (command) {
-            case "server":
-                ServerCommand.create().args(argList).serve();
-                break;
-            case "extract":
-                ExtractCommand.create().args(argList).execute();
-                break;
-            case "build":
-                BuildCommand.create().args(argList).execute();
-                break;
-            case "help":
-                showHelp();
-                System.exit(0);
-                break;
+                ServerCommand.create().execute(Arrays.asList(args));
+            } else {
+                final List<String> argList = new ArrayList<>(Arrays.asList(args));
+                final String command = argList.remove(0);
+                switch (command) {
+                case "server":
+                    ServerCommand.create().execute(argList);
+                    break;
+                case "extract":
+                    ExtractCommand.create().execute(argList);
+                    break;
+                case "build":
+                    BuildCommand.create().execute(argList);
+                    break;
+                case "help":
+                    showHelp();
+                    System.exit(0);
+                    break;
 
-            default:
-                System.err.println("ERROR: Unknown command: " + command);
-                showHelp();
-                System.exit(1);
-                break;
+                default:
+                    System.err.println("ERROR: Unknown command: " + command);
+                    showHelp();
+                    System.exit(1);
+                    break;
+                }
             }
         }
 

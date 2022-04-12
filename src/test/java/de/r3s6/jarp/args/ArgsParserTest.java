@@ -23,7 +23,7 @@ class ArgsParserTest {
     }
 
     @Test
-    void test() throws CmdLineArgExcpetion {
+    void test() throws CmdLineArgException {
         final ArgsParser aj = new ArgsParser(ArgsParserTest::showHelp);
         final Flag debugOpt = aj.addFlag('d');
         final ValueOption indexOpt = aj.addValueOption('i');
@@ -43,7 +43,7 @@ class ArgsParserTest {
     }
 
     @Test
-    void test2() throws CmdLineArgExcpetion {
+    void test2() throws CmdLineArgException {
         final ArgsParser aj = new ArgsParser(ArgsParserTest::showHelp);
         final Flag debugOpt = aj.addFlag('d');
         final ValueOption indexOpt = aj.addValueOption('i');
@@ -65,7 +65,7 @@ class ArgsParserTest {
     }
 
     @Test
-    void testFlag() throws CmdLineArgExcpetion {
+    void testFlag() throws CmdLineArgException {
         final ArgsParser aj = new ArgsParser(ArgsParserTest::showHelp);
         final Flag debugOpt = aj.addFlag('d');
 
@@ -79,7 +79,7 @@ class ArgsParserTest {
         final ArgsParser aj = new ArgsParser(ArgsParserTest::showHelp);
         aj.addFlag('d');
 
-        final CmdLineArgExcpetion ex = assertThrows(CmdLineArgExcpetion.class,
+        final CmdLineArgException ex = assertThrows(CmdLineArgException.class,
                 () -> aj.parse(Arrays.asList("-d", "-d")));
 
         assertEquals("Duplicate option: -d", ex.getMessage());
@@ -91,7 +91,7 @@ class ArgsParserTest {
         final ArgsParser aj = new ArgsParser(ArgsParserTest::showHelp);
         aj.addFlag('d');
 
-        final CmdLineArgExcpetion ex = assertThrows(CmdLineArgExcpetion.class,
+        final CmdLineArgException ex = assertThrows(CmdLineArgException.class,
                 () -> aj.parse(Arrays.asList("-d", "-X")));
 
         assertEquals("Unknown option: -X", ex.getMessage());
@@ -102,7 +102,7 @@ class ArgsParserTest {
         final ArgsParser aj = new ArgsParser(ArgsParserTest::showHelp);
         aj.addFlag('d');
 
-        final CmdLineArgExcpetion ex = assertThrows(CmdLineArgExcpetion.class,
+        final CmdLineArgException ex = assertThrows(CmdLineArgException.class,
                 () -> aj.parse(Arrays.asList("-d", "--unknown")));
 
         assertEquals("Invalid option: --unknown", ex.getMessage());
@@ -155,7 +155,7 @@ class ArgsParserTest {
     }
 
     @Test
-    void testCounter() throws CmdLineArgExcpetion {
+    void testCounter() throws CmdLineArgException {
         final ArgsParser aj = new ArgsParser(ArgsParserTest::showHelp);
         final Counter countOpt = aj.addCounter('v');
 
@@ -165,7 +165,7 @@ class ArgsParserTest {
     }
 
     @Test
-    void testValueOption() throws CmdLineArgExcpetion {
+    void testValueOption() throws CmdLineArgException {
         final ArgsParser aj = new ArgsParser(ArgsParserTest::showHelp);
         final ValueOption f1 = aj.addValueOption('f');
         final ValueOption f2 = aj.addValueOption('o');
@@ -181,7 +181,7 @@ class ArgsParserTest {
         final ArgsParser aj = new ArgsParser(ArgsParserTest::showHelp);
         aj.addValueOption('f');
 
-        final CmdLineArgExcpetion ex = assertThrows(CmdLineArgExcpetion.class,
+        final CmdLineArgException ex = assertThrows(CmdLineArgException.class,
                 () -> aj.parse(Arrays.asList("-f", "file", "-f", "other file")));
 
         assertEquals("Duplicate option: -f", ex.getMessage());
@@ -189,7 +189,7 @@ class ArgsParserTest {
     }
 
     @Test
-    void testCombindedOtions() throws CmdLineArgExcpetion {
+    void testCombindedOtions() throws CmdLineArgException {
         final ArgsParser aj = new ArgsParser(ArgsParserTest::showHelp);
         final Flag debugOpt = aj.addFlag('d');
         final Counter cntOpt = aj.addCounter('v');
@@ -203,7 +203,7 @@ class ArgsParserTest {
     }
 
     @Test
-    void testOptionalArguments() throws CmdLineArgExcpetion {
+    void testOptionalArguments() throws CmdLineArgException {
         final ArgsParser aj = new ArgsParser(ArgsParserTest::showHelp);
         final List<String> optArgs = new ArrayList<>();
         aj.optionalArgumentList(optArgs);
@@ -217,41 +217,41 @@ class ArgsParserTest {
     }
 
     @Test
-    void testUnexpectedOptionalArguments() throws CmdLineArgExcpetion {
+    void testUnexpectedOptionalArguments() throws CmdLineArgException {
         final ArgsParser aj = new ArgsParser(ArgsParserTest::showHelp);
         aj.addFlag('d');
         aj.addArgument("jar");
 
-        final CmdLineArgExcpetion ex = assertThrows(CmdLineArgExcpetion.class,
+        final CmdLineArgException ex = assertThrows(CmdLineArgException.class,
                 () -> aj.parse(Arrays.asList("-d", "jarp.jar", "superfluous")));
 
         assertEquals("Superfluous arguments starting with: superfluous", ex.getMessage());
     }
 
     @Test
-    void testMissingArgument() throws CmdLineArgExcpetion {
+    void testMissingArgument() throws CmdLineArgException {
         final ArgsParser aj = new ArgsParser(ArgsParserTest::showHelp);
         aj.addFlag('d');
         aj.addArgument("jar");
         aj.addArgument("dir");
 
-        final CmdLineArgExcpetion ex = assertThrows(CmdLineArgExcpetion.class, () -> aj.parse(Arrays.asList("-d")));
+        final CmdLineArgException ex = assertThrows(CmdLineArgException.class, () -> aj.parse(Arrays.asList("-d")));
 
         assertEquals("Missing argument(s): jar, dir", ex.getMessage());
     }
 
     @Test
-    void testMissingOptionValue() throws CmdLineArgExcpetion {
+    void testMissingOptionValue() throws CmdLineArgException {
         final ArgsParser aj = new ArgsParser(ArgsParserTest::showHelp);
         aj.addValueOption('o');
 
-        final CmdLineArgExcpetion ex = assertThrows(CmdLineArgExcpetion.class, () -> aj.parse(Arrays.asList("-o")));
+        final CmdLineArgException ex = assertThrows(CmdLineArgException.class, () -> aj.parse(Arrays.asList("-o")));
 
         assertEquals("Missing value for option: -o", ex.getMessage());
     }
 
     @Test
-    void testHelpMethodNull() throws CmdLineArgExcpetion {
+    void testHelpMethodNull() throws CmdLineArgException {
 
         final NullPointerException ex = assertThrows(NullPointerException.class, () -> new ArgsParser(null));
 

@@ -88,7 +88,6 @@ public class JarpBuilder {
                 jar.closeEntry();
             }
 
-            System.out.println();
             System.out.println("New Jar created: " + targetFile);
 
         } catch (final IOException e) {

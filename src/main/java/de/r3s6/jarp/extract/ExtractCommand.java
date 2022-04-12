@@ -11,8 +11,8 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URISyntaxException;
-import java.util.Deque;
 import java.util.Enumeration;
+import java.util.List;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 
@@ -20,7 +20,7 @@ import de.r3s6.jarp.JarPresenter;
 import de.r3s6.jarp.args.ArgsParser;
 import de.r3s6.jarp.args.ArgsParser.Argument;
 import de.r3s6.jarp.args.ArgsParser.Flag;
-import de.r3s6.jarp.args.CmdLineArgExcpetion;
+import de.r3s6.jarp.args.CmdLineArgException;
 
 /**
  * Extract command extracts the presentation from the jar to a given directory
@@ -50,36 +50,24 @@ public final class ExtractCommand {
     }
 
     /**
-     * Processes the command line parameter.
-     *
-     * @param args the command line parameter.
-     * @return this
+     * Shows the command line help for the ExtractCommand.
      */
-    public ExtractCommand args(final Deque<String> args) {
+    public static void showHelp() {
 
-        try {
-            final ArgsParser ah = new ArgsParser(ExtractCommand::showHelp);
-            final Flag force = ah.addFlag('f');
-            final Argument tgtOpt = ah.addArgument("target-dir");
+        System.out.println("extract - extract the contained presentation to the given directory");
+        System.out.println("      USAGE: java -jar jar-presenter.jar extract [-f] <target-dir>");
+        System.out.println("        -f   Overwrite existing files.");
 
-            ah.parse(args);
-
-            mTargetDir = new File(tgtOpt.getValue());
-            mForce = force.getValue();
-
-        } catch (final CmdLineArgExcpetion e) {
-            System.err.println(e.getMessage());
-            showHelp();
-            System.exit(1);
-        }
-
-        return this;
     }
 
     /**
      * Runs the extract command.
+     *
+     * @param argList the command line parameter.
      */
-    public void execute() {
+    public void execute(final List<String> argList) {
+        handleArgs(argList);
+
         try {
 
             final String jarFile = new File(
@@ -132,14 +120,27 @@ public final class ExtractCommand {
     }
 
     /**
-     * Shows the command line help for the ExtractCommand.
+     * Processes the command line parameter.
+     *
+     * @param argList the command line parameter.
      */
-    public static void showHelp() {
+    private void handleArgs(final List<String> argList) {
 
-        System.out.println("extract - extract the contained presentation to the given directory");
-        System.out.println("      USAGE: java -jar jar-presenter.jar extract [-f] <target-dir>");
-        System.out.println("        -f   Overwrite existing files.");
+        try {
+            final ArgsParser ah = new ArgsParser(ExtractCommand::showHelp);
+            final Flag force = ah.addFlag('f');
+            final Argument tgtOpt = ah.addArgument("target-dir");
 
+            ah.parse(argList);
+
+            mTargetDir = new File(tgtOpt.getValue());
+            mForce = force.getValue();
+
+        } catch (final CmdLineArgException e) {
+            System.err.println(e.getMessage());
+            showHelp();
+            System.exit(1);
+        }
     }
 
 }

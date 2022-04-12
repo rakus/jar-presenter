@@ -13,7 +13,6 @@ import java.io.IOException;
 import java.lang.ProcessBuilder.Redirect;
 import java.net.URI;
 import java.util.ArrayList;
-import java.util.Deque;
 import java.util.List;
 
 import javax.swing.Icon;
@@ -29,7 +28,7 @@ import javax.swing.event.HyperlinkListener;
 import de.r3s6.jarp.args.ArgsParser;
 import de.r3s6.jarp.args.ArgsParser.Counter;
 import de.r3s6.jarp.args.ArgsParser.Flag;
-import de.r3s6.jarp.args.CmdLineArgExcpetion;
+import de.r3s6.jarp.args.CmdLineArgException;
 
 /**
  * Command that starts a HTTP server and serves the presentation. directory in
@@ -59,52 +58,6 @@ public final class ServerCommand {
     }
 
     /**
-     * Processes the command line parameter.
-     *
-     * @param args the command line parameter.
-     * @return this
-     */
-    public ServerCommand args(final Deque<String> args) {
-
-        boolean wantTerminal = false;
-        try {
-            final ArgsParser ah = new ArgsParser(ServerCommand::showHelp);
-
-            final Flag browserOpt = ah.addFlag('b');
-            final Counter verboseOpt = ah.addCounter('v');
-            final Flag terminalOpt = ah.addFlag('t');
-            final List<String> optionalArgs = new ArrayList<>();
-            ah.optionalArgumentList(optionalArgs);
-
-            ah.parse(args);
-
-            mStartBrowser = browserOpt.getValue();
-            mVerbosity = verboseOpt.getValue();
-            wantTerminal = terminalOpt.getValue();
-
-            if (optionalArgs.size() == 1) {
-                setPort(optionalArgs.get(0));
-            } else if (optionalArgs.size() > 1) {
-                System.err.println("Superfluous arguments beginning with: " + optionalArgs.get(1));
-                showHelp();
-                System.exit(1);
-            }
-
-        } catch (final CmdLineArgExcpetion e) {
-            System.err.println(e.getMessage());
-            showHelp();
-            System.exit(1);
-        }
-
-        // mUseTerminal might already be set if no GUI possible
-        if (wantTerminal) {
-            mUseTerminal = true;
-        }
-
-        return this;
-    }
-
-    /**
      * Shows the command line help for the ServerCommand.
      */
     public static void showHelp() {
@@ -118,18 +71,13 @@ public final class ServerCommand {
 
     }
 
-    private void setPort(final String fetchArgument) {
-        final int port = Integer.parseInt(fetchArgument);
-        if (port < 0 && port > 65535) { // NOCS: MagicNumber
-            throw new RuntimeException("Port out of range 0 - 65535");
-        }
-        mServerPort = port;
-    }
-
     /**
      * Start serving by starting the HTTP server.
+     *
+     * @param argList the command line parameter.
      */
-    public void serve() {
+    public void execute(final List<String> argList) {
+        handleArgs(argList);
         Logger.instance().verbosity(mVerbosity);
 
         try (HttpServerchen srv = new HttpServerchen(mServerPort)) {
@@ -176,6 +124,57 @@ public final class ServerCommand {
             System.exit(1);
         }
         System.exit(0);
+    }
+
+    /**
+     * Processes the command line parameter.
+     *
+     * @param args the command line parameter.
+     */
+    private void handleArgs(final List<String> args) {
+
+        boolean wantTerminal = false;
+        try {
+            final ArgsParser ah = new ArgsParser(ServerCommand::showHelp);
+
+            final Flag browserOpt = ah.addFlag('b');
+            final Counter verboseOpt = ah.addCounter('v');
+            final Flag terminalOpt = ah.addFlag('t');
+            final List<String> optionalArgs = new ArrayList<>();
+            ah.optionalArgumentList(optionalArgs);
+
+            ah.parse(args);
+
+            mStartBrowser = browserOpt.getValue();
+            mVerbosity = verboseOpt.getValue();
+            wantTerminal = terminalOpt.getValue();
+
+            if (optionalArgs.size() == 1) {
+                setPort(optionalArgs.get(0));
+            } else if (optionalArgs.size() > 1) {
+                System.err.println("Superfluous arguments beginning with: " + optionalArgs.get(1));
+                showHelp();
+                System.exit(1);
+            }
+
+        } catch (final CmdLineArgException e) {
+            System.err.println(e.getMessage());
+            showHelp();
+            System.exit(1);
+        }
+
+        // mUseTerminal might already be set if no GUI possible
+        if (wantTerminal) {
+            mUseTerminal = true;
+        }
+    }
+
+    private void setPort(final String fetchArgument) {
+        final int port = Integer.parseInt(fetchArgument);
+        if (port < 0 && port > 65535) { // NOCS: MagicNumber
+            throw new RuntimeException("Port out of range 0 - 65535");
+        }
+        mServerPort = port;
     }
 
     private void reportError(final String... messages) {

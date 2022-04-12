@@ -7,10 +7,10 @@
 package de.r3s6.jarp.build;
 
 import java.io.IOException;
-import java.util.Deque;
+import java.util.List;
 
 import de.r3s6.jarp.args.ArgsParser;
-import de.r3s6.jarp.args.CmdLineArgExcpetion;
+import de.r3s6.jarp.args.CmdLineArgException;
 
 /**
  * Command to build a new jar-presenter file with the classes from the current
@@ -37,47 +37,6 @@ public final class BuildCommand {
     }
 
     /**
-     * Parses the command-specific options.
-     *
-     * @param args the command line options
-     * @return this.
-     */
-    public BuildCommand args(final Deque<String> args) {
-
-        try {
-            final ArgsParser ah = new ArgsParser(BuildCommand::showHelp);
-
-            final var idxOpt = ah.addValueOption('i');
-            final var jarOpt = ah.addArgument("new-jar-name");
-            final var dirOpt = ah.addArgument("presentation-dir");
-
-            ah.parse(args);
-
-            this.mIndexFile = idxOpt.getValue();
-            this.mTargetJarName = jarOpt.getValue();
-            this.mSrcDir = dirOpt.getValue();
-        } catch (final CmdLineArgExcpetion e) {
-            System.err.println(e.getMessage());
-            showHelp();
-            System.exit(1);
-        }
-
-        return this;
-    }
-
-    /**
-     * Actually executes the command.
-     */
-    public void execute() {
-        try {
-            new JarpBuilder().build(mTargetJarName, mSrcDir, mIndexFile);
-        } catch (final IOException | IllegalArgumentException e) {
-            System.err.println("ERROR: Creating jar failed: " + e);
-            System.exit(1);
-        }
-    }
-
-    /**
      * Shows the command line help for the BuildCommand.
      */
     public static void showHelp() {
@@ -92,6 +51,48 @@ public final class BuildCommand {
         System.out.println("                 name of the new jar to create");
         System.out.println("        presentation-dir");
         System.out.println("                 directory of the presentation to include in new jar");
+    }
+
+    /**
+     * Actually executes the command.
+     *
+     * @param argList the command line options
+     */
+    public void execute(final List<String> argList) {
+        handleArgs(argList);
+        try {
+            new JarpBuilder().build(mTargetJarName, mSrcDir, mIndexFile);
+        } catch (final IOException | IllegalArgumentException e) {
+            System.err.println("ERROR: Creating jar failed: " + e);
+            System.exit(1);
+        }
+    }
+
+    /**
+     * Parses the command-specific options.
+     *
+     * @param argList the command line options
+     */
+    public void handleArgs(final List<String> argList) {
+
+        try {
+            final ArgsParser ah = new ArgsParser(BuildCommand::showHelp);
+
+            final var idxOpt = ah.addValueOption('i');
+            final var jarOpt = ah.addArgument("new-jar-name");
+            final var dirOpt = ah.addArgument("presentation-dir");
+
+            ah.parse(argList);
+
+            this.mIndexFile = idxOpt.getValue();
+            this.mTargetJarName = jarOpt.getValue();
+            this.mSrcDir = dirOpt.getValue();
+        } catch (final CmdLineArgException e) {
+            System.err.println(e.getMessage());
+            showHelp();
+            System.exit(1);
+        }
 
     }
+
 }
