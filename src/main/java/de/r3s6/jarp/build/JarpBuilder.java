@@ -52,15 +52,21 @@ public class JarpBuilder {
      * @param presentationDir directory with presentation to include in the jar
      * @param initialHtml     name of the initial page to open (instead of
      *                        index.html)
+     * @param force           overwrite a existing jar
      * @throws IOException              on IO problems
      * @throws IllegalArgumentException if expected files don't exist
      */
-    public void build(final String targetJar, final String presentationDir, final String initialHtml)
+    public void build(final String targetJar, final String presentationDir, final String initialHtml,
+            final boolean force)
             throws IOException {
 
         final File targetFile = new File(targetJar);
         if (targetFile.exists()) {
-            throw new IllegalArgumentException("Target JAR already exists: " + targetJar);
+            if (!force) {
+                throw new IllegalArgumentException("Target JAR already exists: " + targetJar);
+            } else {
+                targetFile.delete();
+            }
         }
 
         if (targetFile.toPath().startsWith(Path.of(presentationDir))) {

@@ -10,6 +10,9 @@ import java.io.IOException;
 import java.util.List;
 
 import de.r3s6.jarp.args.ArgsParser;
+import de.r3s6.jarp.args.ArgsParser.Argument;
+import de.r3s6.jarp.args.ArgsParser.Flag;
+import de.r3s6.jarp.args.ArgsParser.ValueOption;
 import de.r3s6.jarp.args.CmdLineArgException;
 
 /**
@@ -23,6 +26,8 @@ public final class BuildCommand {
     private String mTargetJarName;
     private String mSrcDir;
     private String mIndexFile;
+    /** Whether to overwrite an existing jar. */
+    private boolean mForce;
 
     private BuildCommand() {
     }
@@ -43,7 +48,9 @@ public final class BuildCommand {
 
         System.out.println("build - build a NEW presentation jar for given presentation");
         System.out.println(
-                "      USAGE: java -jar jar-presenter.jar build [-i <start-page>] <new-jar-name> <presentation-dir>");
+                "      USAGE: java -jar jar-presenter.jar build [-f] [-i <start-page>] <new-jar-name> <presentation-dir>");
+        System.out.println("        -f       overwrite existing jar");
+        System.out.println("                 defines the start page of the presentation to be used instead");
         System.out.println("        -i <start-page>");
         System.out.println("                 defines the start page of the presentation to be used instead");
         System.out.println("                 of index.html");
@@ -61,7 +68,7 @@ public final class BuildCommand {
     public void execute(final List<String> argList) {
         handleArgs(argList);
         try {
-            new JarpBuilder().build(mTargetJarName, mSrcDir, mIndexFile);
+            new JarpBuilder().build(mTargetJarName, mSrcDir, mIndexFile, mForce);
         } catch (final IOException | IllegalArgumentException e) {
             System.err.println("ERROR: Creating jar failed: " + e);
             System.exit(1);
@@ -73,20 +80,23 @@ public final class BuildCommand {
      *
      * @param argList the command line options
      */
-    public void handleArgs(final List<String> argList) {
+    private void handleArgs(final List<String> argList) {
 
         try {
             final ArgsParser ah = new ArgsParser(BuildCommand::showHelp);
 
-            final var idxOpt = ah.addValueOption('i');
-            final var jarOpt = ah.addArgument("new-jar-name");
-            final var dirOpt = ah.addArgument("presentation-dir");
+            final ValueOption idxOpt = ah.addValueOption('i');
+            final Flag forceOpt = ah.addFlag('f');
+            final Argument jarOpt = ah.addArgument("new-jar-name");
+            final Argument dirOpt = ah.addArgument("presentation-dir");
 
             ah.parse(argList);
 
-            this.mIndexFile = idxOpt.getValue();
-            this.mTargetJarName = jarOpt.getValue();
-            this.mSrcDir = dirOpt.getValue();
+            mIndexFile = idxOpt.getValue();
+            mTargetJarName = jarOpt.getValue();
+            mSrcDir = dirOpt.getValue();
+            mForce = forceOpt.getValue();
+
         } catch (final CmdLineArgException e) {
             System.err.println(e.getMessage());
             showHelp();

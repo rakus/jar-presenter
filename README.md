@@ -65,6 +65,7 @@ them with a presentation on disk into a new jar.
 $ java -jar jar-presenter-0.1.0-SNAPSHOT.jar build --help
 build - build a NEW presentation jar for given presentation
       USAGE: java -jar jar-presenter.jar build [-i <start-page>] <new-jar-name> <presentation-dir>
+        -f       overwrite existing jar
         -i <start-page>
                  defines the start page of the presentation to be used instead
                  of index.html
