@@ -23,6 +23,8 @@
         <maven.compiler.testTarget>11</maven.compiler.testTarget>
         <maven.compiler.testSource>11</maven.compiler.testSource>
 
+        <skip.html.page>false</skip.html.page>
+
         <checkstyle.xml>${basedir}/checkstyle.xml</checkstyle.xml>
 
         <junit-jupiter.version>5.8.2</junit-jupiter.version>
@@ -92,6 +94,33 @@
                     </dependency>
                 </dependencies>
             </plugin>
+
+            <plugin>
+                <groupId>org.asciidoctor</groupId>
+                <artifactId>asciidoctor-maven-plugin</artifactId>
+                <version>2.2.2</version>
+                <executions>
+                    <execution>
+                        <id>convert-to-html</id>
+                        <phase>generate-resources</phase>
+                        <goals>
+                            <goal>process-asciidoc</goal>
+                        </goals>
+                        <configuration>
+                            <skip>${skip.html.page}</skip>
+                            <outputDirectory>${project.build.outputDirectory}/presentation</outputDirectory>
+                            <attributes>
+                                <jarp_version>${project.version}</jarp_version>
+                                <toc>left</toc>
+                                <icons>font</icons>
+                            </attributes>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+
+
         </plugins>
     </build>
 
@@ -102,6 +131,7 @@
             <properties>
                 <maven.install.skip>true</maven.install.skip>
                 <maven.deploy.skip>true</maven.deploy.skip>
+                <skip.html.page>true</skip.html.page>
             </properties>
 
             <build>

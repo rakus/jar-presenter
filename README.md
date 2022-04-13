@@ -123,10 +123,10 @@ used.
 
 Normal build is easy: `mvn clean package`
 
-The normal build doesn't carry any presentation. It is runnable, but the HTTP
-server will always answer with a HTTP/404 Not Found.
+The normal build doesn't contain a real presentation. It is runnable, but only
+contains a single [HTML page](src/main/asciidoc/jarp-man.adoc) explaining Jar-Presenter.
 
-To build an example run `mvn clean package -Pexample`.
+To build an example with a real presentation run `mvn clean package -Pexample`.
 
 This will create a jar that contains the demo presentation for
 [reveal.js](https://revealjs.com/).

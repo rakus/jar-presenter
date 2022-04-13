@@ -1,0 +1,176 @@
+= Jar-Presenter
+:doctype: manpage
+:mansource:  jarp {jarp_version}
+:manmanual:  Jar Presenter Manual
+:manversion: {jarp_version}
+:manpurpose: jar packaging for web-based presentations
+:source-highlighter: highlight.js
+
+
+== NAME
+jarp - jar packaging for web-based presentations
+
+== SYNOPSIS
+*java -jar jar-presenter-{jarp_version}.jar* build [options] <jar-name> <presentation-dir>
+
+*java -jar jar-presenter-{jarp_version}.jar* server [options] [port]
+
+*java -jar jar-presenter-{jarp_version}.jar* extract <target-dir>
+
+*java -jar jar-presenter-{jarp_version}.jar* help
+
+== DESCRIPTION
+
+
+== SUB COMMAND `build`
+
+This builds a new Jar Presenter jar with the needed classes and a given
+presentation.
+
+*Command Line Usage*
+
+`java -jar jar-presenter-{jarp_version}.jar build [-i start-page] jar-name presentation-dir`
+
+`-i start-page`::
+Use the given HTML file as the start page (instead of `index.html`).
+
+`jar-name`::
+Name of the new jar to create.
+
+`presentation-dir`::
+Directory with the new presentation to include in the jar.
+
+
+== SUB COMMAND `server`
+
+The `server` sub command start the integrated tiny HTTP server to serve
+the presentation included in the jar.
+By default it opens a GUI dialog that displays the URL of the presentation and
+provides a button to stop the server and exit.
+When the GUI is closed, the server is stopped.
+
+The server is only reachable from a browser started on the same machine.
+It is just to tiny and simple to allow others to connect to it.
+No security is implemented and the server has just enough features to serve
+the presentation, but not more.
+
+The sub command `server` is the default. So the server is also started when no
+sub command is given.
+
+*Command Line Usage*
+
+`java -jar jar-presenter-{jarp_version}.jar server [-bvt] [port]`
+
+or without `server`, as it is the default
+
+`java -jar jar-presenter-{jarp_version}.jar [-bvt] [port]`
+
+`-b`::
+Starts the default browser after the server was started to show the
+presentation.
+
+`-v`::
+Increases the logging output. Can be used multiple times.
+
+`-t`::
+Pure terminal mode -- don't start the GUI.
+
+`port`::
+Port to use for the HTTP server. By default a random port is used.
+
+== SUB COMMAND `extract`
+
+With this sub command the contained presentation is extracted to a given
+directory.
+If the directory doesn't exist, it is created.
+
+The extract command doesn't overwrite existing files, but will stop with an
+error message.
+Note that parts of the presentation might already be extracted.
+With the option `-f` overwriting can be forced.
+
+*Command Line Usage*
+
+`java -jar jar-presenter-{jarp_version}.jar extract [-f] target-dir`
+
+`-f`::
+Force overwriting of existing files.
+
+`target-dir`::
+Directory to write the presentation. Created if not existent.
+
+== THE PRESENTATION
+
+The prsentation can be anything, even just a simple HTML page or site. The
+only thing is that it needs a start page.
+By default the file `index.html` is choosen. If the start page is different
+a file name `jarp-filemap.properties` can be created, that maps request pathes
+to actual files.
+
+If the start page should be `Presentation.html` the following
+`jarp-filemap.properties` is needed.
+Don't forget the leading slash!
+
+[source]
+----
+/index.html=/Presentation.html
+----
+
+When using the sub command `build`, the value of the option `-i` is used to
+create this file.
+
+== INSTALLATION
+
+The result of the project is just a jar.
+It is the tool to create new Jar-Presenter jar files.
+To use it in your environment some start script is needed.
+
+On Unix just copy the jar to some directory on the PATH and add the following
+script in the same directory.
+
+[source,bash, subs="attributes"]
+----
+#!/bin/sh
+
+script_dir="$(cd "$(dirname "$0")" && pwd)" || exit 1
+
+java -jar "$script_dir"/jar-presenter-{jarp_version}.jar build "$@"
+----
+
+Assuming the script is called `jarp`, new Jar-Presenter jars can be created
+using
+
+[source,bash]
+----
+$ jarp cool-talk.jar cool-talk/
+----
+
+
+== EXIT STATUS
+
+*0*::
+Success
+
+*1*::
+Sub command specific error occurred.
+
+
+== AUTHOR
+
+Ralf Schandl
+
+
+== COPYING
+
+Copyright (C) 2022 Ralf Schandl.
+
+Free use of this software is granted under the terms of the
+https://opensource.org/licenses/MIT[MIT-License].
+
+This software is released WITHOUT ANY WARRANTY; without even the implied
+warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+
+*USE AT YOUR OWN RISK!*
+
+
+// vim:ft=asciidoc:syntax=asciidoc:tw=78:et:ts=4:spelllang=en_us:spell
