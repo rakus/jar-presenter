@@ -23,7 +23,6 @@ import java.net.URISyntaxException;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -45,6 +44,10 @@ import de.r3s6.jarp.Utilities;
  *
  */
 public class HttpServerchen implements Closeable {
+
+    private static final String HDR_CONTENT_ENCODING = "Content-Encoding";
+
+    private static final String HDR_CONTENT_TYPE = "Content-Type";
 
     private static final Logger LOGGER = Logger.instance();
 
@@ -290,7 +293,14 @@ public class HttpServerchen implements Closeable {
         try (InputStream in = this.getClass().getClassLoader().getResourceAsStream(resource)) {
 
             if (in != null) {
-                sendResponse(client, request, HttpStatus.OK, Collections.emptyMap(), resource, in);
+                final Map<String, String> headers = new HashMap<>();
+                final String[] typeInfo = ContentTypes.instance().guess(resource);
+                headers.put(HDR_CONTENT_TYPE, typeInfo[0]);
+                if (typeInfo[1] != null) {
+                    headers.put(HDR_CONTENT_ENCODING, typeInfo[1]);
+                }
+
+                sendResponse(client, request, HttpStatus.OK, headers, in);
             } else {
                 // 404
                 send404Response(client, request);
@@ -305,7 +315,7 @@ public class HttpServerchen implements Closeable {
         final Map<String, String> headers = new HashMap<>();
         headers.put("Allow", "GET");
 
-        sendResponse(client, request, HttpStatus.METHOD_NOT_ALLOWED, Collections.emptyMap(), null, null);
+        sendResponse(client, request, HttpStatus.METHOD_NOT_ALLOWED, headers, null);
     }
 
     private void sendBadRequestResponse(final Socket client, final HttpRequest request, final String reason,
@@ -322,21 +332,23 @@ public class HttpServerchen implements Closeable {
     private void sendHtmlResponse(final Socket client, final HttpRequest request, final HttpStatus status,
             final String content) {
         try (InputStream in = new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8))) {
-            sendResponse(client, request, status, Collections.emptyMap(), ".html", in);
+            final Map<String, String> headers = new HashMap<>();
+            headers.put(HDR_CONTENT_TYPE, "text/html");
+            sendResponse(client, request, status, headers, in);
         } catch (final IOException e) {
-            LOGGER.info("Error creating HTML response: " + e.toString());
+            LOGGER.error("Error creating HTML response: " + e.toString());
         }
     }
 
     // CSOFF: ParameterNumber
-    // WARNING: request might be null
+    // WARNING: request might be null if we were not able to parse the request
     private void sendResponse(final Socket client, final HttpRequest request, final HttpStatus status,
-            final Map<String, String> headers, final String resource, final InputStream in) throws IOException {
+            final Map<String, String> headers, final InputStream in) throws IOException {
 
         LOGGER.info(
                 String.format("%d %s", status.getIntValue(), request != null ? request.getPath() : "INVALID REQUEST"));
 
-        try (HttpResponseStream clientOutput = new HttpResponseStream(client.getOutputStream(), status)) {
+        try (HttpResponseMessage clientOutput = new HttpResponseMessage(client.getOutputStream(), status)) {
             clientOutput.headers(headers);
             if (request != null && request.isKeepAlive()) {
                 clientOutput.header("Connection", "keep-alive");
@@ -348,12 +360,6 @@ public class HttpServerchen implements Closeable {
             clientOutput.header("Expires", "0");
 
             if (in != null) {
-                final String[] typeInfo = ContentTypes.instance().guess(resource);
-
-                clientOutput.header("Content-Type", typeInfo[0]);
-                if (typeInfo[1] != null) {
-                    clientOutput.header("Content-Encoding", typeInfo[1]);
-                }
                 // writeBody adds headers "Content-Length" or "Transfer-Encoding".
                 clientOutput.writeBody(in);
             }

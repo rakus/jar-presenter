@@ -94,7 +94,7 @@ final class Logger {
         if (thr != null) {
             thr.printStackTrace(stream);
         }
-
+        stream.flush();
     }
 
 }
