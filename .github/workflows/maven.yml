@@ -11,7 +11,6 @@ on:
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
 
     steps:
@@ -24,8 +23,11 @@ jobs:
         distribution: 'temurin'
         cache: maven
 
-    - name: Build with Maven
+    - name: Build Jar-Presenter
       run: mvn -B package --file pom.xml
+
+    - name: Build reveal.js demo jar
+      run: java -jar target/jar-presenter-*.jar build target/jarp-revealjs-demo-presentation.jar src/main/example/presentation
 
     - name: Build SNAPSHOT release
       uses: "marvinpinto/action-automatic-releases@latest"
@@ -36,3 +38,5 @@ jobs:
         title: "Development Build"
         files: |
           target/jar-presenter*.jar
+          target/jarp-revealjs-demo-presentation.jar
+
