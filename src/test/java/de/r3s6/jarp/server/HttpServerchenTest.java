@@ -12,12 +12,14 @@ import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.opentest4j.AssertionFailedError;
 
 class HttpServerchenTest {
 
@@ -60,7 +62,7 @@ class HttpServerchenTest {
 
         final Response response = doGet(sBaseUrl, Collections.emptyMap());
         assertEquals(200, response.getResponseCode());
-        assertEquals("text/html", response.getHeaderFirst("Content-Type"));
+        assertEquals("text/html", response.getHeader("Content-Type"));
         assertNotNull(response.getBodyAsString());
         assertEquals(expectedHtml, response.getBodyAsString().trim());
     }
@@ -77,21 +79,21 @@ class HttpServerchenTest {
 
         final Response response = doGet(new URL(sBaseUrl, "one-pixel.gif"), Collections.emptyMap());
         assertEquals(200, response.getResponseCode());
-        assertEquals("image/gif", response.getHeaderFirst("Content-Type"));
+        assertEquals("image/gif", response.getHeader("Content-Type"));
     }
 
     @Test
     void testPngImage() throws IOException, InterruptedException {
         final Response response = doGet(new URL(sBaseUrl, "one-pixel.png"), Collections.emptyMap());
         assertEquals(200, response.getResponseCode());
-        assertEquals("image/png", response.getHeaderFirst("Content-Type"));
+        assertEquals("image/png", response.getHeader("Content-Type"));
     }
 
     @Test
     void testJpgImage() throws IOException, InterruptedException {
         final Response response = doGet(new URL(sBaseUrl, "one-pixel.jpg"), Collections.emptyMap());
         assertEquals(200, response.getResponseCode());
-        assertEquals("image/jpeg", response.getHeaderFirst("Content-Type"));
+        assertEquals("image/jpeg", response.getHeader("Content-Type"));
     }
 
     @Test
@@ -104,6 +106,58 @@ class HttpServerchenTest {
     }
 
     @Test
+    void testHeadRequest() throws IOException, InterruptedException {
+        final URL url = new URL(sBaseUrl, "mapped");
+        final Response response = doGet(url, Collections.emptyMap());
+        assertEquals(200, response.getResponseCode());
+
+        final Map<String, List<String>> getHeaders = new HashMap<>(response.getHeaders());
+
+        Map<String, List<String>> headHeaders = null;
+        HttpURLConnection con = null;
+        try {
+            con = (HttpURLConnection) url.openConnection();
+            final Response headResponse = doRequest(con, "HEAD", Collections.emptyMap());
+            assertEquals(200, headResponse.getResponseCode());
+            assertEquals("0", headResponse.getHeader("Content-Length"));
+
+            headHeaders = new HashMap<>(headResponse.getHeaders());
+
+        } finally {
+            if (con != null) {
+                con.disconnect();
+            }
+        }
+
+        // HEAD returns no body, so remove Content-Length header as they will differ.
+        getHeaders.remove("Content-Length");
+        headHeaders.remove("Content-Length");
+
+        assertEquals(getHeaders, headHeaders);
+
+    }
+
+    @Test
+    void testHeadRequest404() throws IOException, InterruptedException {
+        final URL url = new URL(sBaseUrl, "not-there");
+
+        HttpURLConnection con = null;
+        try {
+            con = (HttpURLConnection) url.openConnection();
+            final Response response = doRequest(con, "HEAD", Collections.emptyMap());
+            assertEquals(404, response.getResponseCode());
+            // Response to HEAD doesn't have a body
+            assertNull(response.getBodyAsString());
+
+        } finally {
+            if (con != null) {
+                con.disconnect();
+            }
+        }
+
+    }
+
+    @Test
     void testMethodDeleteResult405() throws IOException, InterruptedException {
 
         HttpURLConnection con = null;
@@ -111,9 +165,9 @@ class HttpServerchenTest {
             con = (HttpURLConnection) sBaseUrl.openConnection();
             final Response response = doRequest(con, "DELETE", Collections.emptyMap());
             assertEquals(405, response.getResponseCode());
-            assertNotNull(response.getHeader("Allow"));
-            assertEquals(1, response.getHeader("Allow").size());
-            assertEquals("GET", response.getHeaderFirst("Allow"));
+            assertNotNull(response.getHeaderList("Allow"));
+            assertEquals(1, response.getHeaderList("Allow").size());
+            assertEquals("GET, HEAD", response.getHeader("Allow"));
             assertNull(response.getBody());
 
         } finally {
@@ -165,7 +219,6 @@ class HttpServerchenTest {
 
     }
 
-    @SuppressWarnings("unused")
     private static class Response {
         private int responseCode;
         private Map<String, List<String>> headers;
@@ -186,13 +239,21 @@ class HttpServerchenTest {
             return headers;
         }
 
-        public List<String> getHeader(final String name) {
+        public List<String> getHeaderList(final String name) {
             return headers.get(name);
         }
 
-        public String getHeaderFirst(final String name) {
+        /**
+         * Get the single value of the given header.
+         *
+         * @param name the header name
+         * @return the single value or {@code null} if the header is not set
+         * @throws AssertionFailedError if the header value is a list
+         */
+        public String getHeader(final String name) {
             final List<String> hdr = headers.get(name);
             if (hdr != null && !hdr.isEmpty()) {
+                assertEquals(1, hdr.size());
                 return hdr.get(0);
             } else {
                 return null;

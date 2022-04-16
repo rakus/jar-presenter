@@ -37,24 +37,27 @@ import de.r3s6.jarp.Utilities;
 
 /**
  * A minimalistic HTTP server.
- *
- * Only serves resources available via classpath using GET. No other requests
- * supported. No security!
- *
+ * <p>
+ * Only serves resources available via classpath using GET and handles HEAD
+ * requests. No other requests supported. <b>No security!</b>
+ * <p>
  * BTW: In German the suffix "chen" is used to build the diminutive of
- * something. Like a "Schiff" (ship) is rather big. Like a cruise ship. A
- * "SchiffCHEN" is pretty small. Down to a kids toy.
+ * something. Like "PeterCHEN" is typically a small child named "Peter".
  *
  * @author Ralf Schandl
  *
  */
 public class HttpServerchen implements Closeable {
 
+    private static final Logger LOGGER = Logger.instance();
+
+    private static final String METHOD_GET = "GET";
+
+    private static final String METHOD_HEAD = "HEAD";
+
     private static final String HDR_CONTENT_ENCODING = "Content-Encoding";
 
     private static final String HDR_CONTENT_TYPE = "Content-Type";
-
-    private static final Logger LOGGER = Logger.instance();
 
     private static final String HTTP404_FMT = "<html><head><meta charset=\"utf-8\"><title>Not Found</title></head>"
             + "<body><p>The requested resource could not be found.</p>"
@@ -177,7 +180,7 @@ public class HttpServerchen implements Closeable {
                 }
                 LOGGER.request(req);
 
-                if ("GET".equals(req.getMethod())) {
+                if (METHOD_GET.equals(req.getMethod()) || METHOD_HEAD.equals(req.getMethod())) {
                     if (!validatePath(req.getPath())) {
                         sendBadRequestResponse(client, req, "Invalid request path", req.getPath());
                     } else {
@@ -188,8 +191,6 @@ public class HttpServerchen implements Closeable {
                             return;
                         }
                     }
-                } else if ("HEAD".equals(req.getMethod())) {
-                    sendHeadResponse(client, req);
                 } else {
                     sendMethodNotAllowedResponse(client, req);
                     /*
@@ -210,7 +211,12 @@ public class HttpServerchen implements Closeable {
             LOGGER.error(e.toString(), e);
             e.printStackTrace();
         } catch (final InvalidRequestException e) {
-            sendBadRequestResponse(client, null, "Can't understand request", e.getMessage());
+            try {
+                sendBadRequestResponse(client, null, "Can't understand request", e.getMessage());
+            } catch (final IOException e1) {
+                LOGGER.error("Failed to send BAD_REQUEST: " + e.toString());
+                // exiting anyway
+            }
         } finally {
             try {
                 LOGGER.debug("Closing socket connection");
@@ -285,9 +291,9 @@ public class HttpServerchen implements Closeable {
         }
         // check the method
         switch (requestParts[0]) {
+        case METHOD_GET:
+        case METHOD_HEAD:
         case "OPTIONS":
-        case "GET":
-        case "HEAD":
         case "POST":
         case "PUT":
         case "DELETE":
@@ -353,7 +359,11 @@ public class HttpServerchen implements Closeable {
                     headers.put(HDR_CONTENT_ENCODING, typeInfo[1]);
                 }
 
-                sendResponse(client, request, HttpStatus.OK, headers, in);
+                if (METHOD_HEAD.equals(request.getMethod())) {
+                    sendResponse(client, request, HttpStatus.OK, headers, null);
+                } else {
+                    sendResponse(client, request, HttpStatus.OK, headers, in);
+                }
             } else {
                 // 404
                 send404Response(client, request);
@@ -364,36 +374,38 @@ public class HttpServerchen implements Closeable {
 
     }
 
-    private void sendHeadResponse(final Socket client, final HttpRequest request) throws IOException {
-        sendResponse(client, request, HttpStatus.OK, Collections.emptyMap(), null);
-    }
-
     private void sendMethodNotAllowedResponse(final Socket client, final HttpRequest request) throws IOException {
         final Map<String, String> headers = new HashMap<>();
-        headers.put("Allow", "GET");
+        headers.put("Allow", METHOD_GET + ", " + METHOD_HEAD);
 
         sendResponse(client, request, HttpStatus.METHOD_NOT_ALLOWED, headers, null);
     }
 
     private void sendBadRequestResponse(final Socket client, final HttpRequest request, final String reason,
-            final String entity) {
+            final String entity) throws IOException {
         sendHtmlResponse(client, request, HttpStatus.BAD_REQUEST,
                 String.format(HTTP400_FMT, reason, entity));
     }
 
-    private void send404Response(final Socket client, final HttpRequest request) {
-        sendHtmlResponse(client, request, HttpStatus.NOT_FOUND,
-                String.format(HTTP404_FMT, request.getUrl().toString()));
+    private void send404Response(final Socket client, final HttpRequest request) throws IOException {
+        if (METHOD_GET.equals(request.getMethod())) {
+            sendHtmlResponse(client, request, HttpStatus.NOT_FOUND,
+                    String.format(HTTP404_FMT, request.getUrl().toString()));
+        } else {
+            // Response to HEAD doesn't have a body
+            sendResponse(client, request, HttpStatus.NOT_FOUND, Collections.emptyMap(), null);
+        }
     }
 
     private void sendHtmlResponse(final Socket client, final HttpRequest request, final HttpStatus status,
-            final String content) {
+            final String content) throws IOException {
         try (InputStream in = new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8))) {
             final Map<String, String> headers = new HashMap<>();
             headers.put(HDR_CONTENT_TYPE, "text/html");
             sendResponse(client, request, status, headers, in);
         } catch (final IOException e) {
             LOGGER.error("Error creating HTML response: " + e.toString());
+            throw e;
         }
     }
 
@@ -412,9 +424,11 @@ public class HttpServerchen implements Closeable {
             } else {
                 clientOutput.header("Connection", "close");
             }
+            // Disable caching
             clientOutput.header("Cache-Control", "no-cache, no-store, must-revalidate");
             clientOutput.header("Pragma", "no-cache");
             clientOutput.header("Expires", "0");
+
             clientOutput.header("Last-Modified", mStartTimeFormatted);
 
             if (in != null) {
