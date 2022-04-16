@@ -9,9 +9,15 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 class HttpResponseMessageTest {
+
+    @BeforeAll
+    static void setup() {
+        Logger.instance().verbosity(0);
+    }
 
     @Test
     void testNoBody() throws IOException {

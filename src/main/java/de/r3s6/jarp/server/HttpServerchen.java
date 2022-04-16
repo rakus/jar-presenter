@@ -22,9 +22,14 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 import de.r3s6.jarp.JarPresenter;
@@ -36,9 +41,9 @@ import de.r3s6.jarp.Utilities;
  * Only serves resources available via classpath using GET. No other requests
  * supported. No security!
  *
- * BTW: In German the suffix "chen" is used to minimize something. Like a
- * "Schiff" (ship) is rather big. Like a cruise ship. A "SchiffCHEN" is pretty
- * small. Down to a kids toy.
+ * BTW: In German the suffix "chen" is used to build the diminutive of
+ * something. Like a "Schiff" (ship) is rather big. Like a cruise ship. A
+ * "SchiffCHEN" is pretty small. Down to a kids toy.
  *
  * @author Ralf Schandl
  *
@@ -71,6 +76,11 @@ public class HttpServerchen implements Closeable {
      */
     private final Map<String, String> mFileMap;
 
+    private final OffsetDateTime mStartTime;
+    private final String mStartTimeFormatted;
+
+    private boolean mShutdown;
+
     /**
      * Constructs a HttpServerchen.
      *
@@ -81,8 +91,13 @@ public class HttpServerchen implements Closeable {
     public HttpServerchen(final int port, final String rootDir) throws IOException {
         // backlog = 0 -> "an implementation specific default will be used"
         mServerSocket = new ServerSocket(port, 0, InetAddress.getByName("localhost"));
-        this.mRootDir = rootDir;
-        this.mFileMap = Utilities.readPropertyMapResource(mRootDir + "/" + JarPresenter.FILEMAP_BASENAME);
+        mRootDir = rootDir;
+        mFileMap = Utilities.readPropertyMapResource(mRootDir + "/" + JarPresenter.FILEMAP_BASENAME);
+
+        mStartTime = OffsetDateTime.now();
+        mStartTimeFormatted = DateTimeFormatter.ofPattern("EEE, dd MMM yyyy HH:mm:ss z", Locale.ENGLISH)
+                .withZone(ZoneId.systemDefault())
+                .format(mStartTime);
     }
 
     /**
@@ -100,15 +115,46 @@ public class HttpServerchen implements Closeable {
     }
 
     /**
+     * Shut down the server.
+     */
+    public void shutdown() {
+        mShutdown = true;
+        try {
+            mServerSocket.close();
+        } catch (final IOException e) {
+            LOGGER.error("Closing server socket failed.");
+        }
+
+    }
+
+    /**
      * Start serving.
      *
      * @throws IOException on socket problems
      */
     public void serve() throws IOException {
+        LOGGER.info("Listening on port " + mServerSocket.getLocalPort());
         while (true) {
-            final Socket client = mServerSocket.accept();
-            new Thread(() -> handleClient(client)).start();
+            try {
+                final Socket client = mServerSocket.accept();
+                if (mShutdown) {
+                    break;
+
+                }
+                new Thread(() -> handleClient(client)).start();
+            } catch (final IOException e) {
+                if (mShutdown) {
+                    break;
+                } else {
+                    throw e;
+                }
+            }
         }
+        LOGGER.info("Shutting down");
+        if (!mServerSocket.isClosed()) {
+            mServerSocket.close();
+        }
+        return;
     }
 
     private void handleClient(final Socket client) {
@@ -119,17 +165,32 @@ public class HttpServerchen implements Closeable {
             LOGGER.error("Ignoring setting socket timeout failed: " + e);
         }
 
+        final String host = client.getLocalAddress().getCanonicalHostName() + ":" + client.getLocalPort();
+
         try {
             final BufferedReader br = new BufferedReader(new InputStreamReader(client.getInputStream()));
 
             while (!client.isClosed() && !client.isInputShutdown()) {
-                final HttpRequest req = readRequest(br);
+                final HttpRequest req = readRequest(br, host);
                 if (req == null) {
                     return;
                 }
                 LOGGER.request(req);
 
-                if (!"GET".equals(req.getMethod())) {
+                if ("GET".equals(req.getMethod())) {
+                    if (!validatePath(req.getPath())) {
+                        sendBadRequestResponse(client, req, "Invalid request path", req.getPath());
+                    } else {
+                        handleRequest(client, req);
+
+                        if (!req.isKeepAlive()) {
+                            // No keep-alive -> close
+                            return;
+                        }
+                    }
+                } else if ("HEAD".equals(req.getMethod())) {
+                    sendHeadResponse(client, req);
+                } else {
                     sendMethodNotAllowedResponse(client, req);
                     /*
                      * Close - there might be additional lines in the input stream we can't handle.
@@ -138,16 +199,6 @@ public class HttpServerchen implements Closeable {
                     return;
                 }
 
-                if (!validatePath(req.getPath())) {
-                    sendBadRequestResponse(client, req, "Invalid request path", req.getPath());
-                } else {
-                    handleRequest(client, req);
-
-                    if (!req.isKeepAlive()) {
-                        // No keep-alive -> close
-                        return;
-                    }
-                }
             }
         } catch (final SocketException e) {
             // IGNORED Most likely socket closed by client
@@ -174,13 +225,15 @@ public class HttpServerchen implements Closeable {
     /**
      * Reads a HTTP request from the given reader.
      *
-     * @param br the reader to read from
+     * @param br   the reader to read from
+     * @param host the local hostname with port
      * @return a parsed {@link HttpRetryException}
      * @throws IOException             if reading fails
      * @throws InvalidRequestException if something is wrong with the request. E.g.
      *                                 Format error
      */
-    private HttpRequest readRequest(final BufferedReader br) throws IOException, InvalidRequestException {
+    private HttpRequest readRequest(final BufferedReader br, final String host)
+            throws IOException, InvalidRequestException {
         final List<String> lines = new ArrayList<>();
         String line;
         boolean firstLine = true;
@@ -215,9 +268,9 @@ public class HttpServerchen implements Closeable {
                 .path(URLDecoder.decode(requestParts[1], StandardCharsets.UTF_8))
                 .version(requestParts[2]);
 
-        builder.host(lines.get(1).split(" ")[1]);
+        builder.host(host);
 
-        lines.stream().skip(2).forEach(s -> {
+        lines.stream().skip(1).forEach(s -> {
             final String name = s.substring(0, s.indexOf(":"));
             final String value = s.substring(s.indexOf(":") + 1).trim();
             builder.addHeader(name, value);
@@ -311,6 +364,10 @@ public class HttpServerchen implements Closeable {
 
     }
 
+    private void sendHeadResponse(final Socket client, final HttpRequest request) throws IOException {
+        sendResponse(client, request, HttpStatus.OK, Collections.emptyMap(), null);
+    }
+
     private void sendMethodNotAllowedResponse(final Socket client, final HttpRequest request) throws IOException {
         final Map<String, String> headers = new HashMap<>();
         headers.put("Allow", "GET");
@@ -358,10 +415,13 @@ public class HttpServerchen implements Closeable {
             clientOutput.header("Cache-Control", "no-cache, no-store, must-revalidate");
             clientOutput.header("Pragma", "no-cache");
             clientOutput.header("Expires", "0");
+            clientOutput.header("Last-Modified", mStartTimeFormatted);
 
             if (in != null) {
                 // writeBody adds headers "Content-Length" or "Transfer-Encoding".
                 clientOutput.writeBody(in);
+            } else {
+                clientOutput.header("Content-Length", "0");
             }
         }
     }

@@ -40,9 +40,11 @@ final class Logger {
     }
 
     void error(final String message) {
-        if (mVerbosity >= 1) {
-            doLog(System.err, message, null);
-        }
+        doLog(System.err, message, null);
+    }
+
+    void log(final String message) {
+        doLog(System.out, message, null);
     }
 
     void info(final String message) {

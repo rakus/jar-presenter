@@ -122,16 +122,19 @@ public class HttpResponseMessage implements Closeable, Flushable {
             // one go
             header("Content-Length", Integer.toString(cnt));
             finishHeader();
+            LOGGER.logResponseLine("body - " + cnt + " bytes");
             write(buffer, 0, cnt);
         } else {
             // Chunked transfer
             header("Transfer-Encoding", "chunked");
             finishHeader();
             println(Integer.toHexString(cnt));
+            LOGGER.logResponseLine("body-chunk - " + cnt + " bytes");
             write(buffer, 0, cnt);
             while ((cnt = in.readNBytes(buffer, 0, bufferSize)) > 0) {
                 println();
                 println(Integer.toHexString(cnt));
+                LOGGER.logResponseLine("body-chunk - " + cnt + " bytes");
                 write(buffer, 0, cnt);
             }
             println();
