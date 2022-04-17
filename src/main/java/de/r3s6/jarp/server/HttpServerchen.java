@@ -41,6 +41,9 @@ import de.r3s6.jarp.Utilities;
  * Only serves resources available via classpath using GET and handles HEAD
  * requests. No other requests supported. <b>No security!</b>
  * <p>
+ * Note that the class {@link HttpResponseMessage} also contains some relevant
+ * logic regarding headers and body transfer.
+ * <p>
  * BTW: In German the suffix "chen" is used to build the diminutive of
  * something. Like "PeterCHEN" is typically a small child named "Peter".
  *
@@ -244,6 +247,7 @@ public class HttpServerchen implements Closeable {
         String line;
         boolean firstLine = true;
         while ((line = br.readLine()) != null) {
+            LOGGER.logRequestLine(line);
             if (line.isBlank()) {
                 // Server should ignore one empty line before the request.
                 if (!firstLine) {

@@ -81,6 +81,12 @@ final class Logger {
         }
     }
 
+    void logRequestLine(final String line) {
+        if (mVerbosity >= 3) { // NOCS: MagicNumber
+            doLog(System.out, ">>" + line, null);
+        }
+    }
+
     void logResponseLine(final String line) {
         if (mVerbosity >= 3) { // NOCS: MagicNumber
             doLog(System.out, "<<" + line, null);
