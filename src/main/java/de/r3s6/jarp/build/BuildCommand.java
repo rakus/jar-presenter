@@ -50,7 +50,6 @@ public final class BuildCommand {
         System.out.println(
                 "      USAGE: java -jar jar-presenter.jar build [-f] [-i <start-page>] <new-jar-name> <presentation-dir>");
         System.out.println("        -f       overwrite existing jar");
-        System.out.println("                 defines the start page of the presentation to be used instead");
         System.out.println("        -i <start-page>");
         System.out.println("                 defines the start page of the presentation to be used instead");
         System.out.println("                 of index.html");
