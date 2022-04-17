@@ -359,11 +359,7 @@ public class HttpServerchen implements Closeable {
                     headers.put(HDR_CONTENT_ENCODING, typeInfo[1]);
                 }
 
-                if (METHOD_HEAD.equals(request.getMethod())) {
-                    sendResponse(client, request, HttpStatus.OK, headers, null);
-                } else {
-                    sendResponse(client, request, HttpStatus.OK, headers, in);
-                }
+                sendResponse(client, request, HttpStatus.OK, headers, in);
             } else {
                 // 404
                 send404Response(client, request);
@@ -417,7 +413,8 @@ public class HttpServerchen implements Closeable {
         LOGGER.info(
                 String.format("%d %s", status.getIntValue(), request != null ? request.getPath() : "INVALID REQUEST"));
 
-        try (HttpResponseMessage clientOutput = new HttpResponseMessage(client.getOutputStream(), status)) {
+        try (HttpResponseMessage clientOutput = new HttpResponseMessage(request != null ? request.getMethod() : "GET",
+                status, client.getOutputStream())) {
             clientOutput.headers(headers);
             if (request != null && request.isKeepAlive()) {
                 clientOutput.header("Connection", "keep-alive");

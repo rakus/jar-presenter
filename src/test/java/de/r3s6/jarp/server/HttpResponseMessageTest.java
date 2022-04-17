@@ -23,7 +23,7 @@ class HttpResponseMessageTest {
     void testNoBody() throws IOException {
         final ByteArrayOutputStream baos = new ByteArrayOutputStream();
 
-        final HttpResponseMessage resp = new HttpResponseMessage(baos, HttpStatus.OK);
+        final HttpResponseMessage resp = new HttpResponseMessage("GET", HttpStatus.OK, baos);
 
         resp.header("Test", "test");
 
@@ -48,7 +48,7 @@ class HttpResponseMessageTest {
     void testSimpleBodyFromArray() throws IOException {
         final ByteArrayOutputStream baos = new ByteArrayOutputStream();
 
-        final HttpResponseMessage resp = new HttpResponseMessage(baos, HttpStatus.OK);
+        final HttpResponseMessage resp = new HttpResponseMessage("GET", HttpStatus.OK, baos);
 
         resp.header("Test", "test");
 
@@ -77,7 +77,7 @@ class HttpResponseMessageTest {
     void testEmptyBody() throws IOException {
         final ByteArrayOutputStream baos = new ByteArrayOutputStream();
 
-        final HttpResponseMessage resp = new HttpResponseMessage(baos, HttpStatus.OK);
+        final HttpResponseMessage resp = new HttpResponseMessage("GET", HttpStatus.OK, baos);
 
         resp.header("Test", "test");
 
@@ -106,7 +106,7 @@ class HttpResponseMessageTest {
     void testSimpleBodyFromStream() throws IOException {
         final ByteArrayOutputStream baos = new ByteArrayOutputStream();
 
-        final HttpResponseMessage resp = new HttpResponseMessage(baos, HttpStatus.OK);
+        final HttpResponseMessage resp = new HttpResponseMessage("GET", HttpStatus.OK, baos);
 
         resp.header("Test", "test");
 
@@ -135,7 +135,7 @@ class HttpResponseMessageTest {
     void testMaxBodyDirect() throws IOException {
         final ByteArrayOutputStream baos = new ByteArrayOutputStream();
 
-        final HttpResponseMessage resp = new HttpResponseMessage(baos, HttpStatus.OK);
+        final HttpResponseMessage resp = new HttpResponseMessage("GET", HttpStatus.OK, baos);
 
         resp.header("Test", "test");
 
@@ -163,7 +163,7 @@ class HttpResponseMessageTest {
     void testChunkedBodyOneChunk() throws IOException {
         final ByteArrayOutputStream baos = new ByteArrayOutputStream();
 
-        final HttpResponseMessage resp = new HttpResponseMessage(baos, HttpStatus.OK);
+        final HttpResponseMessage resp = new HttpResponseMessage("GET", HttpStatus.OK, baos);
 
         resp.header("Test", "test");
 
@@ -196,7 +196,7 @@ class HttpResponseMessageTest {
     void testChunkedBodyTwoChunks() throws IOException {
         final ByteArrayOutputStream baos = new ByteArrayOutputStream();
 
-        final HttpResponseMessage resp = new HttpResponseMessage(baos, HttpStatus.OK);
+        final HttpResponseMessage resp = new HttpResponseMessage("GET", HttpStatus.OK, baos);
 
         resp.header("Test", "test");
 
@@ -231,7 +231,7 @@ class HttpResponseMessageTest {
     void testChunkedBodyThreeChunks() throws IOException {
         final ByteArrayOutputStream baos = new ByteArrayOutputStream();
 
-        final HttpResponseMessage resp = new HttpResponseMessage(baos, HttpStatus.OK);
+        final HttpResponseMessage resp = new HttpResponseMessage("GET", HttpStatus.OK, baos);
 
         resp.header("Test", "test");
 
@@ -266,7 +266,7 @@ class HttpResponseMessageTest {
     void testInvalidCallHeaderAfterBody() throws IOException {
         final ByteArrayOutputStream baos = new ByteArrayOutputStream();
 
-        final HttpResponseMessage resp = new HttpResponseMessage(baos, HttpStatus.OK);
+        final HttpResponseMessage resp = new HttpResponseMessage("GET", HttpStatus.OK, baos);
 
         resp.header("Test", "test");
 
@@ -283,7 +283,7 @@ class HttpResponseMessageTest {
     void testInvalidCallDoubleBody() throws IOException {
         final ByteArrayOutputStream baos = new ByteArrayOutputStream();
 
-        final HttpResponseMessage resp = new HttpResponseMessage(baos, HttpStatus.OK);
+        final HttpResponseMessage resp = new HttpResponseMessage("GET", HttpStatus.OK, baos);
 
         resp.header("Test", "test");
 
@@ -300,7 +300,7 @@ class HttpResponseMessageTest {
     void testInvalidCallHeaderAfterClose() throws IOException {
         final ByteArrayOutputStream baos = new ByteArrayOutputStream();
 
-        final HttpResponseMessage resp = new HttpResponseMessage(baos, HttpStatus.OK);
+        final HttpResponseMessage resp = new HttpResponseMessage("GET", HttpStatus.OK, baos);
 
         resp.header("Test", "test");
         resp.close();
@@ -315,7 +315,7 @@ class HttpResponseMessageTest {
     void testInvalidCallBodyAfterClose() throws IOException {
         final ByteArrayOutputStream baos = new ByteArrayOutputStream();
 
-        final HttpResponseMessage resp = new HttpResponseMessage(baos, HttpStatus.OK);
+        final HttpResponseMessage resp = new HttpResponseMessage("GET", HttpStatus.OK, baos);
 
         resp.header("Test", "test");
         resp.close();

@@ -119,7 +119,9 @@ class HttpServerchenTest {
             con = (HttpURLConnection) url.openConnection();
             final Response headResponse = doRequest(con, "HEAD", Collections.emptyMap());
             assertEquals(200, headResponse.getResponseCode());
-            assertEquals("0", headResponse.getHeader("Content-Length"));
+
+            // might be understood as an empty body.
+            assertTrue(headResponse.getBody() == null || headResponse.getBody().length == 0);
 
             headHeaders = new HashMap<>(headResponse.getHeaders());
 
@@ -129,10 +131,7 @@ class HttpServerchenTest {
             }
         }
 
-        // HEAD returns no body, so remove Content-Length header as they will differ.
-        getHeaders.remove("Content-Length");
-        headHeaders.remove("Content-Length");
-
+        // HEAD should return the same header, but just no body
         assertEquals(getHeaders, headHeaders);
 
     }

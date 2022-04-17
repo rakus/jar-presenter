@@ -17,19 +17,25 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 /**
- * A HTTP Response Message that writes to a response stream and handles chunked
- * data transfer.
- *
- * This is not fail safe. The methods {@link #header(String, String)} or
- * {@link #headers(Map)} and {@link #writeBody(byte[])} or
- * {@link #writeBody(InputStream)} has to be called in the right sequence. The
- * message is completed by calling close.
- *
- * In case of an invalid call sequence a {@link IllegalStateException} is
- * thrown.
- *
- * <b>IMPORTANT</b>: Closing the response will just flush the underlying output
- * steam but will NOT close it!
+ * A HTTP/1.1 Response Message that writes to a response stream and handles
+ * chunked data transfer.
+ * <p>
+ * This class decides whether a response body can be transfered in one or has to
+ * be transfered in chunked mode. It sets appropriate headers ("Content-Length"
+ * or "Transfer-Encoding: chunked").
+ * <p>
+ * Also it knows that for a HEAD request all headers should be set, but the body
+ * itself must not be transfered.
+ * <p>
+ * The methods {@link #header(String, String)} or {@link #headers(Map)} and
+ * {@link #writeBody(byte[])} or {@link #writeBody(InputStream)} has to be
+ * called in the right sequence. In case of an invalid call sequence a
+ * {@link IllegalStateException} is thrown.
+ * <p>
+ * The message is completed by calling close.
+ * <p>
+ * <b>IMPORTANT</b>: Closing the message will just flush the underlying output
+ * stream but will NOT close it!
  *
  * @author Ralf Schandl
  */
@@ -56,17 +62,23 @@ public class HttpResponseMessage implements Closeable, Flushable {
         HEADER, BODY, DONE
     }
 
+    private String mHttpMethod;
+
     private State mState;
 
     /**
      * HttpOutputStream wrapped around given stream.
      *
-     * @param out    the actual stream to write to
-     * @param status the HTTP status
+     * @param httpMethod method of the request.
+     * @param status     the HTTP status
+     * @param out        the actual stream to write to
      * @throws IOException when writing status failed
      */
-    public HttpResponseMessage(final OutputStream out, final HttpStatus status) throws IOException {
+    public HttpResponseMessage(final String httpMethod, final HttpStatus status, final OutputStream out)
+            throws IOException {
         mDelegate = new BufferedOutputStream(out);
+
+        mHttpMethod = httpMethod;
 
         println("HTTP/1.1 " + status);
         mState = State.HEADER;
@@ -122,12 +134,18 @@ public class HttpResponseMessage implements Closeable, Flushable {
             // one go
             header("Content-Length", Integer.toString(cnt));
             finishHeader();
+            if ("HEAD".equals(mHttpMethod)) {
+                return;
+            }
             LOGGER.logResponseLine("body - " + cnt + " bytes");
             write(buffer, 0, cnt);
         } else {
             // Chunked transfer
             header("Transfer-Encoding", "chunked");
             finishHeader();
+            if ("HEAD".equals(mHttpMethod)) {
+                return;
+            }
             println(Integer.toHexString(cnt));
             LOGGER.logResponseLine("body-chunk - " + cnt + " bytes");
             write(buffer, 0, cnt);
@@ -153,7 +171,9 @@ public class HttpResponseMessage implements Closeable, Flushable {
         assertState(State.HEADER);
         header("Content-Length", Integer.toString(buffer.length));
         finishHeader();
-        write(buffer);
+        if (!"HEAD".equals(mHttpMethod)) {
+            write(buffer);
+        }
     }
 
     @Override
