@@ -10,7 +10,10 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
+import java.net.URISyntaxException;
 import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -19,9 +22,13 @@ import java.util.Map;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.opentest4j.AssertionFailedError;
 
 class HttpServerchenTest {
+
+    private static final String DATA_DIR = "test-data";
 
     private static HttpServerchen sHttpd;
     private static URL sBaseUrl;
@@ -32,7 +39,7 @@ class HttpServerchenTest {
         // set to higher value while debugging
         Logger.instance().verbosity(0);
         try {
-            sHttpd = new HttpServerchen(0, "test-data");
+            sHttpd = new HttpServerchen(0, DATA_DIR);
             sPort = sHttpd.getPort();
             sBaseUrl = new URL("http://localhost:" + sPort);
 
@@ -43,7 +50,8 @@ class HttpServerchenTest {
                     e.printStackTrace();
                 }
             }).start();
-            Thread.sleep(500);
+            // Sleep for a moment, so the server thread is started.
+            Thread.sleep(100);
         } catch (final IOException | InterruptedException e) {
             sHttpd.shutdown();
             fail("Starting http Server failed", e);
@@ -60,7 +68,13 @@ class HttpServerchenTest {
 
         final String expectedHtml = "<html><head><title>INDEX</title></head><body>INDEX</body></html>";
 
-        final Response response = doGet(sBaseUrl, Collections.emptyMap());
+        Response response = doGet(sBaseUrl, Collections.emptyMap());
+        assertEquals(200, response.getResponseCode());
+        assertEquals("text/html", response.getHeader("Content-Type"));
+        assertNotNull(response.getBodyAsString());
+        assertEquals(expectedHtml, response.getBodyAsString().trim());
+
+        response = doGet(new URL(sBaseUrl, "index.html"), Collections.emptyMap());
         assertEquals(200, response.getResponseCode());
         assertEquals("text/html", response.getHeader("Content-Type"));
         assertNotNull(response.getBodyAsString());
@@ -74,26 +88,20 @@ class HttpServerchenTest {
         assertEquals("Map-Target", response.getBodyAsString());
     }
 
-    @Test
-    void testGifImage() throws IOException, InterruptedException {
+    @ParameterizedTest
+    @CsvSource({ "one-pixel.gif,image/gif", "one-pixel.jpg,image/jpeg", "one-pixel.png,image/png",
+            "one-pixel.svg,image/svg+xml", "index.html,text/html" })
+    void testGetFile(final String filename, final String contentType) throws IOException, URISyntaxException {
 
-        final Response response = doGet(new URL(sBaseUrl, "one-pixel.gif"), Collections.emptyMap());
-        assertEquals(200, response.getResponseCode());
-        assertEquals("image/gif", response.getHeader("Content-Type"));
-    }
+        final URL url = this.getClass().getClassLoader().getResource(DATA_DIR + "/" + filename);
+        final long size = Files.size(Path.of(url.toURI()));
 
-    @Test
-    void testPngImage() throws IOException, InterruptedException {
-        final Response response = doGet(new URL(sBaseUrl, "one-pixel.png"), Collections.emptyMap());
+        final Response response = doGet(new URL(sBaseUrl, filename), Collections.emptyMap());
         assertEquals(200, response.getResponseCode());
-        assertEquals("image/png", response.getHeader("Content-Type"));
-    }
+        assertEquals(contentType, response.getHeader("Content-Type"));
+        assertNotNull(response.getBody());
+        assertEquals(size, response.getBody().length);
 
-    @Test
-    void testJpgImage() throws IOException, InterruptedException {
-        final Response response = doGet(new URL(sBaseUrl, "one-pixel.jpg"), Collections.emptyMap());
-        assertEquals(200, response.getResponseCode());
-        assertEquals("image/jpeg", response.getHeader("Content-Type"));
     }
 
     @Test
@@ -168,6 +176,35 @@ class HttpServerchenTest {
             assertEquals(1, response.getHeaderList("Allow").size());
             assertEquals("GET, HEAD", response.getHeader("Allow"));
             assertNull(response.getBody());
+
+        } finally {
+            if (con != null) {
+                con.disconnect();
+            }
+        }
+    }
+
+    @Test
+    void testMethodPostResult405() throws IOException, InterruptedException {
+
+        final byte[] postBytes = "This is a test".getBytes();
+
+        HttpURLConnection con = null;
+        try {
+            con = (HttpURLConnection) sBaseUrl.openConnection();
+            con.setRequestMethod("POST");
+            con.setRequestProperty("Content-Type", "text/plain");
+            con.setRequestProperty("Content-Length", String.valueOf(postBytes.length));
+            con.setDoOutput(true);
+            con.getOutputStream().write(postBytes);
+
+            final int respCode = con.getResponseCode();
+            assertEquals(405, respCode);
+
+            // Add another request
+            final Response response = doGet(new URL(sBaseUrl, "mapped"), Collections.emptyMap());
+            assertEquals(200, response.getResponseCode());
+            assertEquals("Map-Target", response.getBodyAsString());
 
         } finally {
             if (con != null) {
