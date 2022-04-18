@@ -69,26 +69,32 @@ class HttpServerchenDownloadTest {
         sHttpd.shutdown();
     }
 
+    /*-
+     * Test file download with random data files.
+     * - 1048575: 1 byte before switching to chunked transfer
+     * - 1048576: using chunked transfer. 1 block
+     * - 1048571: using chunked transfer. 1 block + 1 byte
+     */
     @ParameterizedTest
-    @ValueSource(ints = { 200, 1023, 1024, 10 * 1024, 20 * 1024 })
-    void testFileDownload(final int sizeKb) throws IOException {
+    @ValueSource(ints = { 1, 13, 1712, 214831, 1048575, 1048576, 1048577, 3312317, 10485760, 20971514 })
+    void testFileDownload(final int byteSize) throws IOException {
 
-        final File file = sDataDir.resolve("testfile-" + sizeKb).toFile();
-        // create big file
-        final byte[] fileMd5 = writeFile(file, sizeKb);
+        final File file = sDataDir.resolve("testfile-" + byteSize).toFile();
+        // write random data
+        final byte[] fileMd5 = writeRandomData(file, byteSize);
 
-        final Response resp = HttpTestUtils.doGet(new URL(sBaseUrl, "testfile-" + sizeKb));
+        final Response resp = HttpTestUtils.doGet(new URL(sBaseUrl, "testfile-" + byteSize));
 
         assertEquals(200, resp.getResponseCode());
         assertEquals("application/octet-stream", resp.getHeader("Content-Type"));
         assertNotNull(resp.getBody());
-        assertEquals(sizeKb * 1024, resp.getBody().length);
+        assertEquals(byteSize, resp.getBody().length);
 
-        if (sizeKb >= 1024) {
+        if (byteSize >= (1024 * 1024)) {
             assertEquals("chunked", resp.getHeader("Transfer-Encoding"));
             assertNull(resp.getHeader("Content-Length"));
         } else {
-            assertEquals(Integer.toString(sizeKb * 1024), resp.getHeader("Content-Length"));
+            assertEquals(Integer.toString(byteSize), resp.getHeader("Content-Length"));
             assertNull(resp.getHeader("Transfer-Encoding"));
         }
 
@@ -99,18 +105,35 @@ class HttpServerchenDownloadTest {
         file.delete();
     }
 
-    private byte[] writeFile(final File file, final int sizeKb) throws IOException {
+    /**
+     * Write random data to file.
+     *
+     * @param file file to write to
+     * @param size number of random bytes
+     * @return MD5 checksum of written data
+     * @throws IOException if file operation fails
+     */
+    private byte[] writeRandomData(final File file, final int size) throws IOException {
         final byte[] buffer = new byte[1024];
         final Random rand = new Random();
+
+        int written = 0;
 
         try {
             final MessageDigest md = MessageDigest.getInstance("MD5");
 
             try (BufferedOutputStream out = new BufferedOutputStream(new FileOutputStream(file))) {
-                for (int i = 0; i < sizeKb; i++) {
+                while (written < (size - buffer.length)) {
                     rand.nextBytes(buffer);
                     md.update(buffer);
                     out.write(buffer);
+                    written += buffer.length;
+                }
+                if (size - written > 0) {
+                    final byte[] rest = new byte[size - written];
+                    rand.nextBytes(rest);
+                    md.update(rest);
+                    out.write(rest);
                 }
             }
             return md.digest();
@@ -123,10 +146,7 @@ class HttpServerchenDownloadTest {
 
     private byte[] calcMd5(final byte[] data) {
         try {
-            final MessageDigest md = MessageDigest.getInstance("MD5");
-
-            md.update(data);
-            return md.digest();
+            return MessageDigest.getInstance("MD5").digest(data);
         } catch (final NoSuchAlgorithmException e) {
             fail(e);
             // never reached
