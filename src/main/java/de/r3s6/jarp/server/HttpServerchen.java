@@ -74,6 +74,8 @@ public class HttpServerchen implements Closeable {
 
     private final ServerSocket mServerSocket;
 
+    private final ClassLoader mClassLoader;
+
     private final String mRootDir;
 
     /**
@@ -90,20 +92,36 @@ public class HttpServerchen implements Closeable {
     /**
      * Constructs a HttpServerchen.
      *
-     * @param port    the port to open. 0 means to choose a random port.
-     * @param rootDir the root dir of the resources to serve.
+     * @param port        the port to open. 0 means to choose a random port.
+     * @param rootDir     the root dir of the resources to serve.
+     * @param classLoader the classLoader to load resources
      * @throws IOException if reading the filemap files produces it.
      */
-    public HttpServerchen(final int port, final String rootDir) throws IOException {
+    public HttpServerchen(final int port, final String rootDir, final ClassLoader classLoader) throws IOException {
+
+        mClassLoader = classLoader;
+
         // backlog = 0 -> "an implementation specific default will be used"
         mServerSocket = new ServerSocket(port, 0, InetAddress.getByName("localhost"));
         mRootDir = rootDir;
-        mFileMap = Utilities.readPropertyMapResource(mRootDir + "/" + JarPresenter.FILEMAP_BASENAME);
+        mFileMap = Utilities.readPropertyMapResource(mRootDir + "/" + JarPresenter.FILEMAP_BASENAME, mClassLoader);
 
         mStartTime = OffsetDateTime.now();
         mStartTimeFormatted = DateTimeFormatter.ofPattern("EEE, dd MMM yyyy HH:mm:ss z", Locale.ENGLISH)
                 .withZone(ZoneId.systemDefault())
                 .format(mStartTime);
+    }
+
+    /**
+     * Constructs a HttpServerchen.
+     *
+     * @param port    the port to open. 0 means to choose a random port.
+     * @param rootDir the root dir of the resources to serve.
+     * @throws IOException if reading the filemap files produces it.
+     */
+    public HttpServerchen(final int port, final String rootDir) throws IOException {
+        this(port, rootDir, HttpServerchen.class.getClassLoader());
+
     }
 
     /**
@@ -353,7 +371,7 @@ public class HttpServerchen implements Closeable {
         final String resource = mRootDir + mFileMap.getOrDefault(fn, fn);
         LOGGER.debug("Serving: " + request.getPath() + " -> " + resource);
 
-        try (InputStream in = this.getClass().getClassLoader().getResourceAsStream(resource)) {
+        try (InputStream in = mClassLoader.getResourceAsStream(resource)) {
 
             if (in != null) {
                 final Map<String, String> headers = new HashMap<>();

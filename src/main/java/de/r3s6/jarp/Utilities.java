@@ -25,6 +25,27 @@ public final class Utilities {
     }
 
     /**
+     * Loads a properties file via given classloader into a Map.
+     *
+     * If the file is not found, a empty map is returned.
+     *
+     * @param resourceName the name of the classpath resource
+     * @param classLoader  the ClassLoader to use
+     * @return A Map with the properties
+     * @throws IOException if reading fails
+     */
+    public static Map<String, String> readPropertyMapResource(final String resourceName, final ClassLoader classLoader)
+            throws IOException {
+        try (InputStream in = classLoader.getResourceAsStream(resourceName)) {
+            if (in != null) {
+                return readPropertyMap(in);
+            } else {
+                return Collections.emptyMap();
+            }
+        }
+    }
+
+    /**
      * Loads a properties file via classloader into a Map.
      *
      * If the file is not found, a empty map is returned.
@@ -34,13 +55,7 @@ public final class Utilities {
      * @throws IOException if reading fails
      */
     public static Map<String, String> readPropertyMapResource(final String resourceName) throws IOException {
-        try (InputStream in = Utilities.class.getClassLoader().getResourceAsStream(resourceName)) {
-            if (in != null) {
-                return readPropertyMap(in);
-            } else {
-                return Collections.emptyMap();
-            }
-        }
+        return readPropertyMapResource(resourceName, Utilities.class.getClassLoader());
     }
 
     /**

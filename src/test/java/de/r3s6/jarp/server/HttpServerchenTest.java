@@ -6,9 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URISyntaxException;
 import java.net.URL;
@@ -24,7 +22,8 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
-import org.opentest4j.AssertionFailedError;
+
+import de.r3s6.jarp.server.HttpTestUtils.Response;
 
 class HttpServerchenTest {
 
@@ -68,13 +67,13 @@ class HttpServerchenTest {
 
         final String expectedHtml = "<html><head><title>INDEX</title></head><body>INDEX</body></html>";
 
-        Response response = doGet(sBaseUrl, Collections.emptyMap());
+        Response response = HttpTestUtils.doGet(sBaseUrl);
         assertEquals(200, response.getResponseCode());
         assertEquals("text/html", response.getHeader("Content-Type"));
         assertNotNull(response.getBodyAsString());
         assertEquals(expectedHtml, response.getBodyAsString().trim());
 
-        response = doGet(new URL(sBaseUrl, "index.html"), Collections.emptyMap());
+        response = HttpTestUtils.doGet(new URL(sBaseUrl, "index.html"));
         assertEquals(200, response.getResponseCode());
         assertEquals("text/html", response.getHeader("Content-Type"));
         assertNotNull(response.getBodyAsString());
@@ -83,7 +82,7 @@ class HttpServerchenTest {
 
     @Test
     void testMapped() throws IOException, InterruptedException {
-        final Response response = doGet(new URL(sBaseUrl, "mapped"), Collections.emptyMap());
+        final Response response = HttpTestUtils.doGet(new URL(sBaseUrl, "mapped"));
         assertEquals(200, response.getResponseCode());
         assertEquals("Map-Target", response.getBodyAsString());
     }
@@ -96,7 +95,7 @@ class HttpServerchenTest {
         final URL url = this.getClass().getClassLoader().getResource(DATA_DIR + "/" + filename);
         final long size = Files.size(Path.of(url.toURI()));
 
-        final Response response = doGet(new URL(sBaseUrl, filename), Collections.emptyMap());
+        final Response response = HttpTestUtils.doGet(new URL(sBaseUrl, filename));
         assertEquals(200, response.getResponseCode());
         assertEquals(contentType, response.getHeader("Content-Type"));
         assertNotNull(response.getBody());
@@ -107,7 +106,7 @@ class HttpServerchenTest {
     @Test
     void testNotFound() throws IOException, InterruptedException {
         final URL url = new URL(sBaseUrl, "unknown-file");
-        final Response response = doGet(url, Collections.emptyMap());
+        final Response response = HttpTestUtils.doGet(url);
         assertEquals(404, response.getResponseCode());
         assertTrue(response.getBodyAsString().contains(url.toString()),
                 "Does not contain request URL: " + response.getBodyAsString());
@@ -116,7 +115,7 @@ class HttpServerchenTest {
     @Test
     void testHeadRequest() throws IOException, InterruptedException {
         final URL url = new URL(sBaseUrl, "mapped");
-        final Response response = doGet(url, Collections.emptyMap());
+        final Response response = HttpTestUtils.doGet(url);
         assertEquals(200, response.getResponseCode());
 
         final Map<String, List<String>> getHeaders = new HashMap<>(response.getHeaders());
@@ -125,7 +124,7 @@ class HttpServerchenTest {
         HttpURLConnection con = null;
         try {
             con = (HttpURLConnection) url.openConnection();
-            final Response headResponse = doRequest(con, "HEAD", Collections.emptyMap());
+            final Response headResponse = HttpTestUtils.doRequest(con, "HEAD", Collections.emptyMap());
             assertEquals(200, headResponse.getResponseCode());
 
             // might be understood as an empty body.
@@ -151,7 +150,7 @@ class HttpServerchenTest {
         HttpURLConnection con = null;
         try {
             con = (HttpURLConnection) url.openConnection();
-            final Response response = doRequest(con, "HEAD", Collections.emptyMap());
+            final Response response = HttpTestUtils.doRequest(con, "HEAD", Collections.emptyMap());
             assertEquals(404, response.getResponseCode());
             // Response to HEAD doesn't have a body
             assertNull(response.getBodyAsString());
@@ -170,7 +169,7 @@ class HttpServerchenTest {
         HttpURLConnection con = null;
         try {
             con = (HttpURLConnection) sBaseUrl.openConnection();
-            final Response response = doRequest(con, "DELETE", Collections.emptyMap());
+            final Response response = HttpTestUtils.doRequest(con, "DELETE", Collections.emptyMap());
             assertEquals(405, response.getResponseCode());
             assertNotNull(response.getHeaderList("Allow"));
             assertEquals(1, response.getHeaderList("Allow").size());
@@ -202,7 +201,7 @@ class HttpServerchenTest {
             assertEquals(405, respCode);
 
             // Add another request
-            final Response response = doGet(new URL(sBaseUrl, "mapped"), Collections.emptyMap());
+            final Response response = HttpTestUtils.doGet(new URL(sBaseUrl, "mapped"));
             assertEquals(200, response.getResponseCode());
             assertEquals("Map-Target", response.getBodyAsString());
 
@@ -212,102 +211,4 @@ class HttpServerchenTest {
             }
         }
     }
-
-    private Response doGet(final URL url, final Map<String, String> requestHeader) throws IOException {
-        HttpURLConnection con = null;
-        try {
-            con = (HttpURLConnection) url.openConnection();
-            return doGet(con, requestHeader);
-        } finally {
-            if (con != null) {
-                con.disconnect();
-            }
-        }
-    }
-
-    private Response doGet(final HttpURLConnection con, final Map<String, String> requestHeader) throws IOException {
-        return doRequest(con, "GET", requestHeader);
-    }
-
-    private Response doRequest(final HttpURLConnection con, final String method,
-            final Map<String, String> requestHeader) throws IOException {
-
-        con.setRequestMethod(method);
-
-        final int respCode = con.getResponseCode();
-        final InputStream in;
-        if (respCode < 400) {
-            in = con.getInputStream();
-        } else {
-            in = con.getErrorStream();
-        }
-
-        if (in != null) {
-            final ByteArrayOutputStream baos = new ByteArrayOutputStream();
-
-            in.transferTo(baos);
-
-            in.close();
-            return new Response(respCode, con.getHeaderFields(), baos.toByteArray());
-        } else {
-            return new Response(respCode, con.getHeaderFields(), null);
-        }
-
-    }
-
-    private static class Response {
-        private int responseCode;
-        private Map<String, List<String>> headers;
-        private byte[] body;
-
-        public Response(final int responseCode, final Map<String, List<String>> header, final byte[] body) {
-            super();
-            this.responseCode = responseCode;
-            this.headers = header;
-            this.body = body;
-        }
-
-        public int getResponseCode() {
-            return responseCode;
-        }
-
-        public Map<String, List<String>> getHeaders() {
-            return headers;
-        }
-
-        public List<String> getHeaderList(final String name) {
-            return headers.get(name);
-        }
-
-        /**
-         * Get the single value of the given header.
-         *
-         * @param name the header name
-         * @return the single value or {@code null} if the header is not set
-         * @throws AssertionFailedError if the header value is a list
-         */
-        public String getHeader(final String name) {
-            final List<String> hdr = headers.get(name);
-            if (hdr != null && !hdr.isEmpty()) {
-                assertEquals(1, hdr.size());
-                return hdr.get(0);
-            } else {
-                return null;
-            }
-        }
-
-        public byte[] getBody() {
-            return body;
-        }
-
-        public String getBodyAsString() {
-            if (body != null) {
-                return new String(body);
-            } else {
-                return null;
-            }
-        }
-
-    }
-
 }
