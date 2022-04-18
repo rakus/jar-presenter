@@ -1,25 +1,35 @@
 = Jar-Presenter
-:doctype: manpage
+:doctype: article
 :mansource:  jarp {jarp_version}
 :manmanual:  Jar Presenter Manual
 :manversion: {jarp_version}
 :manpurpose: jar packaging for web-based presentations
 :source-highlighter: highlight.js
+:toc: left
 
-
-== NAME
-jarp - jar packaging for web-based presentations
-
-== SYNOPSIS
-*java -jar jar-presenter-{jarp_version}.jar* build [options] <jar-name> <presentation-dir>
-
-*java -jar jar-presenter-{jarp_version}.jar* server [options] [port]
-
-*java -jar jar-presenter-{jarp_version}.jar* extract <target-dir>
-
-*java -jar jar-presenter-{jarp_version}.jar* help
+Jar packaging for web-based presentations.
 
 == DESCRIPTION
+
+Jar-Presenter combine a web-based presentation (or any kind of static web
+page) with some Java classes into a _executable_ jar to:
+
+* Serve the contained presentation using a tiny HTTP server
+
+* Build new jars by copying the Java classes and a new presentation into a new
+  jar. This new jar has all the features, but just a different presentation.
+
+* extract the contained presentation
+
+*Usage:*
+
+* `java -jar jar-presenter-{jarp_version}.jar build [options] <jar-name> <presentation-dir>`
+`
+* `java -jar jar-presenter-{jarp_version}.jar server [options] [port]`
+`
+* `java -jar jar-presenter-{jarp_version}.jar extract <target-dir>`
+`
+* `java -jar jar-presenter-{jarp_version}.jar help`
 
 
 == SUB COMMAND `build`
@@ -101,10 +111,10 @@ Directory to write the presentation. Created if not existent.
 
 == THE PRESENTATION
 
-The prsentation can be anything, even just a simple HTML page or site. The
-only thing is that it needs a start page.
-By default the file `index.html` is choosen. If the start page is different
-a file name `jarp-filemap.properties` can be created, that maps request pathes
+The presentation can be anything, even just a simple HTML page (like this).
+The only thing is that it needs is a start page.
+By default the file `index.html` is chosen. If the start page is different
+a file name `jarp-filemap.properties` can be created, that maps request paths
 to actual files.
 
 If the start page should be `Presentation.html` the following
@@ -145,20 +155,14 @@ using
 $ jarp cool-talk.jar cool-talk/
 ----
 
-
-== EXIT STATUS
-
-*0*::
-Success
-
-*1*::
-Sub command specific error occurred.
-
-
 == AUTHOR
 
 Ralf Schandl
 
+== SOURCE CODE
+
+The source code is available at
+https://github.com/rakus/jar-presenter[GitHub].
 
 == COPYING
 
