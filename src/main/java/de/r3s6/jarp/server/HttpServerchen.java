@@ -62,12 +62,18 @@ public class HttpServerchen implements Closeable {
 
     private static final String HDR_CONTENT_TYPE = "Content-Type";
 
+    private static final String HDR_CONNECTION = "Connection";
+
     private static final String HTTP404_FMT = "<html><head><meta charset=\"utf-8\"><title>Not Found</title></head>"
             + "<body><p>The requested resource could not be found.</p>"
             + "<tt>%s</tt><p><sub>jar presenter</sub></p></body></html>";
 
     private static final String HTTP400_FMT = "<html><head><meta charset=\"utf-8\"><title>Bad Request</title></head>"
             + "<body><p>%s</p><tt>%s</tt><p><sub>jar presenter</sub></p></body></html>";
+
+    private static final String HTTP501_FMT = "<html><head><meta charset=\"utf-8\"><title>Not Implemented</title></head>"
+            + "<body><p>Support for HTTP Method '%s' not implemented.</p>"
+            + "<p>Server only supports GET and HEAD.</p><p><sub>jar presenter</sub></p></body></html>";
 
     /** Close socket when client send nothing within 60 seconds. */
     private static final int SOCKET_TIMEOUT = 60 * 1000;
@@ -213,7 +219,14 @@ public class HttpServerchen implements Closeable {
                         }
                     }
                 } else {
-                    sendMethodNotAllowedResponse(client, req);
+                    /*-
+                     * Send 501 Not Implemented. RFC7231:
+                     * 6.6.2.  501 Not Implemented
+                     * ...
+                     * This is the appropriate response when the server does not recognize the
+                     * request method and is not capable of supporting it for any resource.
+                     */
+                    sendMethodNotImplementedResponse(client, req);
                     /*
                      * Close - there might be additional lines in the input stream we can't handle.
                      * E.g. POST request.
@@ -392,22 +405,25 @@ public class HttpServerchen implements Closeable {
 
     }
 
-    private void sendMethodNotAllowedResponse(final Socket client, final HttpRequest request) throws IOException {
+    private void sendMethodNotImplementedResponse(final Socket client, final HttpRequest request) throws IOException {
         final Map<String, String> headers = new HashMap<>();
         headers.put("Allow", METHOD_GET + ", " + METHOD_HEAD);
+        headers.put(HDR_CONNECTION, "close");
 
-        sendResponse(client, request, HttpStatus.METHOD_NOT_ALLOWED, headers, null);
+        final String body = String.format(HTTP501_FMT, request.getMethod());
+
+        sendHtmlResponse(client, request, HttpStatus.NOT_IMPLEMENTED, headers, body);
     }
 
     private void sendBadRequestResponse(final Socket client, final HttpRequest request, final String reason,
             final String entity) throws IOException {
-        sendHtmlResponse(client, request, HttpStatus.BAD_REQUEST,
+        sendHtmlResponse(client, request, HttpStatus.BAD_REQUEST, Collections.emptyMap(),
                 String.format(HTTP400_FMT, reason, entity));
     }
 
     private void send404Response(final Socket client, final HttpRequest request) throws IOException {
         if (METHOD_GET.equals(request.getMethod())) {
-            sendHtmlResponse(client, request, HttpStatus.NOT_FOUND,
+            sendHtmlResponse(client, request, HttpStatus.NOT_FOUND, Collections.emptyMap(),
                     String.format(HTTP404_FMT, request.getUrl().toString()));
         } else {
             // Response to HEAD doesn't have a body
@@ -416,11 +432,12 @@ public class HttpServerchen implements Closeable {
     }
 
     private void sendHtmlResponse(final Socket client, final HttpRequest request, final HttpStatus status,
-            final String content) throws IOException {
+            final Map<String, String> headers, final String content) throws IOException {
         try (InputStream in = new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8))) {
-            final Map<String, String> headers = new HashMap<>();
-            headers.put(HDR_CONTENT_TYPE, "text/html");
-            sendResponse(client, request, status, headers, in);
+            final Map<String, String> myHeaders = new HashMap<>();
+            myHeaders.putAll(headers);
+            myHeaders.put(HDR_CONTENT_TYPE, "text/html");
+            sendResponse(client, request, status, myHeaders, in);
         } catch (final IOException e) {
             LOGGER.error("Error creating HTML response: " + e.toString());
             throw e;
@@ -437,18 +454,20 @@ public class HttpServerchen implements Closeable {
 
         try (HttpResponseMessage clientOutput = new HttpResponseMessage(request != null ? request.getMethod() : "GET",
                 status, client.getOutputStream())) {
-            clientOutput.headers(headers);
+
+            final Map<String, String> respHeaders = new HashMap<>(headers);
             if (request != null && request.isKeepAlive()) {
-                clientOutput.header("Connection", "keep-alive");
+                respHeaders.putIfAbsent(HDR_CONNECTION, "keep-alive");
             } else {
-                clientOutput.header("Connection", "close");
+                respHeaders.putIfAbsent(HDR_CONNECTION, "close");
             }
             // Disable caching
-            clientOutput.header("Cache-Control", "no-cache, no-store, must-revalidate");
-            clientOutput.header("Pragma", "no-cache");
-            clientOutput.header("Expires", "0");
+            respHeaders.putIfAbsent("Cache-Control", "no-cache, no-store, must-revalidate");
+            respHeaders.putIfAbsent("Pragma", "no-cache");
+            respHeaders.putIfAbsent("Expires", "0");
 
-            clientOutput.header("Last-Modified", mStartTimeFormatted);
+            respHeaders.put("Last-Modified", mStartTimeFormatted);
+            clientOutput.headers(respHeaders);
 
             if (in != null) {
                 // writeBody adds headers "Content-Length" or "Transfer-Encoding".

@@ -115,7 +115,7 @@ class HttpServerchenTest {
     @Test
     void testHeadRequest() throws IOException, InterruptedException {
         final URL url = new URL(sBaseUrl, "mapped");
-        final Response response = HttpTestUtils.doGet(url);
+        final Response response = HttpTestUtils.doGet(url, Collections.emptyMap());
         assertEquals(200, response.getResponseCode());
 
         final Map<String, List<String>> getHeaders = new HashMap<>(response.getHeaders());
@@ -164,17 +164,18 @@ class HttpServerchenTest {
     }
 
     @Test
-    void testMethodDeleteResult405() throws IOException, InterruptedException {
+    void testMethodDeleteResult501() throws IOException, InterruptedException {
 
         HttpURLConnection con = null;
         try {
             con = (HttpURLConnection) sBaseUrl.openConnection();
             final Response response = HttpTestUtils.doRequest(con, "DELETE", Collections.emptyMap());
-            assertEquals(405, response.getResponseCode());
+            assertEquals(501, response.getResponseCode());
             assertNotNull(response.getHeaderList("Allow"));
             assertEquals(1, response.getHeaderList("Allow").size());
             assertEquals("GET, HEAD", response.getHeader("Allow"));
-            assertNull(response.getBody());
+            assertNotNull(response.getBody());
+            assertTrue(response.getBodyAsString().contains("DELETE"));
 
         } finally {
             if (con != null) {
@@ -184,7 +185,7 @@ class HttpServerchenTest {
     }
 
     @Test
-    void testMethodPostResult405() throws IOException, InterruptedException {
+    void testMethodPostResult501() throws IOException, InterruptedException {
 
         final byte[] postBytes = "This is a test".getBytes();
 
@@ -198,10 +199,11 @@ class HttpServerchenTest {
             con.getOutputStream().write(postBytes);
 
             final int respCode = con.getResponseCode();
-            assertEquals(405, respCode);
+            assertEquals(501, respCode);
 
             // Add another request
-            final Response response = HttpTestUtils.doGet(new URL(sBaseUrl, "mapped"));
+            final Response response = HttpTestUtils.doGet(new URL(sBaseUrl, "mapped"),
+                    Collections.emptyMap());
             assertEquals(200, response.getResponseCode());
             assertEquals("Map-Target", response.getBodyAsString());
 
