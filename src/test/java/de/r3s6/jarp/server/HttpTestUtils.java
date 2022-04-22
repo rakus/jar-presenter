@@ -39,6 +39,7 @@ class HttpTestUtils {
             final Map<String, String> requestHeader) throws IOException {
 
         con.setRequestMethod(method);
+        con.setUseCaches(false);
 
         final int respCode = con.getResponseCode();
         final InputStream in;

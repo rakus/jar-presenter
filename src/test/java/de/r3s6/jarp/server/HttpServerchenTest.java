@@ -124,6 +124,7 @@ class HttpServerchenTest {
         HttpURLConnection con = null;
         try {
             con = (HttpURLConnection) url.openConnection();
+            con.setUseCaches(false);
             final Response headResponse = HttpTestUtils.doRequest(con, "HEAD", Collections.emptyMap());
             assertEquals(200, headResponse.getResponseCode());
 
@@ -150,6 +151,7 @@ class HttpServerchenTest {
         HttpURLConnection con = null;
         try {
             con = (HttpURLConnection) url.openConnection();
+            con.setUseCaches(false);
             final Response response = HttpTestUtils.doRequest(con, "HEAD", Collections.emptyMap());
             assertEquals(404, response.getResponseCode());
             // Response to HEAD doesn't have a body
@@ -169,6 +171,7 @@ class HttpServerchenTest {
         HttpURLConnection con = null;
         try {
             con = (HttpURLConnection) sBaseUrl.openConnection();
+            con.setUseCaches(false);
             final Response response = HttpTestUtils.doRequest(con, "DELETE", Collections.emptyMap());
             assertEquals(501, response.getResponseCode());
             assertNotNull(response.getHeaderList("Allow"));
@@ -192,6 +195,7 @@ class HttpServerchenTest {
         HttpURLConnection con = null;
         try {
             con = (HttpURLConnection) sBaseUrl.openConnection();
+            con.setUseCaches(false);
             con.setRequestMethod("POST");
             con.setRequestProperty("Content-Type", "text/plain");
             con.setRequestProperty("Content-Length", String.valueOf(postBytes.length));
