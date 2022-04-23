@@ -245,7 +245,6 @@ public class HttpServerchen implements Closeable {
             LOGGER.debug(e.toString());
         } catch (final IOException e) {
             LOGGER.error(e.toString(), e);
-            e.printStackTrace();
         } catch (final InvalidRequestException e) {
             try {
                 sendBadRequestResponse(client, null, "Can't understand request", e.getMessage());
@@ -424,13 +423,8 @@ public class HttpServerchen implements Closeable {
     }
 
     private void send404Response(final Socket client, final HttpRequest request) throws IOException {
-        if (METHOD_GET.equals(request.getMethod())) {
-            sendHtmlResponse(client, request, HttpStatus.NOT_FOUND, Collections.emptyMap(),
-                    String.format(HTTP404_FMT, request.getUrl().toString()));
-        } else {
-            // Response to HEAD doesn't have a body
-            sendResponse(client, request, HttpStatus.NOT_FOUND, Collections.emptyMap(), null);
-        }
+        sendHtmlResponse(client, request, HttpStatus.NOT_FOUND, Collections.emptyMap(),
+                String.format(HTTP404_FMT, request.getUrl()));
     }
 
     private void sendHtmlResponse(final Socket client, final HttpRequest request, final HttpStatus status,
