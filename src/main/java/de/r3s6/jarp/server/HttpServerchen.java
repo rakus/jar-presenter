@@ -54,6 +54,9 @@ public class HttpServerchen implements Closeable {
 
     private static final Logger LOGGER = Logger.instance();
 
+    // HTTP date format according to RFC 7231 (7.1.1.1)
+    private static final String HTTP_DATE_FMT = "EEE, dd MMM yyyy HH:mm:ss z";
+
     private static final String METHOD_GET = "GET";
 
     private static final String METHOD_HEAD = "HEAD";
@@ -113,8 +116,7 @@ public class HttpServerchen implements Closeable {
         mFileMap = Utilities.readPropertyMapResource(mRootDir + "/" + JarPresenter.FILEMAP_BASENAME, mClassLoader);
 
         mStartTime = OffsetDateTime.now();
-        mStartTimeFormatted = DateTimeFormatter.ofPattern("EEE, dd MMM yyyy HH:mm:ss z", Locale.ENGLISH)
-                .withZone(ZoneId.systemDefault())
+        mStartTimeFormatted = DateTimeFormatter.ofPattern(HTTP_DATE_FMT, Locale.ENGLISH).withZone(ZoneId.of("GMT"))
                 .format(mStartTime);
     }
 

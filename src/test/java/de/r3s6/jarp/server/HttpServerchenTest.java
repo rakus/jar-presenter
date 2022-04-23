@@ -70,12 +70,16 @@ class HttpServerchenTest {
         Response response = HttpTestUtils.doGet(sBaseUrl);
         assertEquals(200, response.getResponseCode());
         assertEquals("text/html", response.getHeader("Content-Type"));
+        assertNotNull(response.getHeader("Last-Modified"));
+        assertTrue(response.getHeader("Last-Modified").endsWith("GMT"));
         assertNotNull(response.getBodyAsString());
         assertEquals(expectedHtml, response.getBodyAsString().trim());
 
         response = HttpTestUtils.doGet(new URL(sBaseUrl, "index.html"));
         assertEquals(200, response.getResponseCode());
         assertEquals("text/html", response.getHeader("Content-Type"));
+        assertNotNull(response.getHeader("Last-Modified"));
+        assertTrue(response.getHeader("Last-Modified").endsWith("GMT"));
         assertNotNull(response.getBodyAsString());
         assertEquals(expectedHtml, response.getBodyAsString().trim());
     }
