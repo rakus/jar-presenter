@@ -368,14 +368,24 @@ public class HttpServerchen implements Closeable {
         int depth = 0;
 
         for (final String string : parts) {
-            if ("..".equals(string)) {
+            switch (string) {
+            case "..":
                 depth--;
-            } else {
+                if (depth < 0) {
+                    return false;
+                }
+                break;
+            case "":
+            case ".":
+                // same dir
+                break;
+            default:
                 depth++;
+                break;
             }
         }
 
-        return depth >= 0;
+        return true;
     }
 
     private void handleRequest(final Socket client, final HttpRequest request) {

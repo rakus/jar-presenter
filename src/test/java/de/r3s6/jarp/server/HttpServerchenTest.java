@@ -22,6 +22,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import de.r3s6.jarp.server.HttpTestUtils.Response;
 
@@ -82,6 +83,23 @@ class HttpServerchenTest {
         assertTrue(response.getHeader("Last-Modified").endsWith("GMT"));
         assertNotNull(response.getBodyAsString());
         assertEquals(expectedHtml, response.getBodyAsString().trim());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {
+            "/../index.html",
+            "/../META-INF/MANIFEST.MF",
+            "/./../META-INF/MANIFEST.MF",
+            "test/../../index.html",
+            "/./../META-INF/MANIFEST.MF",
+            "/./..//////META-INF/MANIFEST.MF"
+    })
+    void invalidRequestPath(final String path) throws IOException {
+
+        final Response response = HttpTestUtils.doGet(new URL(sBaseUrl, path));
+        assertEquals(400, response.getResponseCode());
+        assertTrue(response.getBodyAsString().contains("Invalid request path"),
+                "Expected text 'Invalid request path' not found in body");
     }
 
     @Test

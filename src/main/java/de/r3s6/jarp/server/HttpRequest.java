@@ -7,6 +7,8 @@
 package de.r3s6.jarp.server;
 
 import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.Collections;
 import java.util.HashMap;
@@ -27,7 +29,14 @@ class HttpRequest {
         mMethod = builder.mMethod;
         mVersion = builder.mVersion;
         mHeaders = Collections.unmodifiableMap(builder.mHeaders);
-        mUrl = new URL("http://" + builder.mHost + builder.mPath);
+        final String url = "http://" + builder.mHost + builder.mPath;
+        try {
+            final URI uri = new URI(url);
+            mUrl = uri.normalize().toURL();
+        } catch (final URISyntaxException e) {
+            Logger.instance().error("Invalid request URL: " + url, e);
+            throw new MalformedURLException(e.getMessage());
+        }
     }
 
     public String getMethod() {

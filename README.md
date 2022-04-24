@@ -14,7 +14,7 @@ HTTP server and serves the presentation included in the jar.
 ---
 **IMPORTANT**
 
-The minimalist HTTP server
+The minimalistic HTTP server
 * does not implement any security
 * assumes a well behaving client (e.g. a "standard" browser)
 * only accepts request via localhost
