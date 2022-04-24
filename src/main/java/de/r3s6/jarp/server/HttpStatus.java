@@ -19,7 +19,7 @@ public enum HttpStatus {
     BAD_REQUEST(400, "Bad Request"),
     /** 404 - Not Found. */
     NOT_FOUND(404, "Not Found"),
-    /** 405 - Method Not Allowed. */
+    /** 501 - Not Implemented. */
     NOT_IMPLEMENTED(501, "Not Implemented");
 
     private int mIntValue;
