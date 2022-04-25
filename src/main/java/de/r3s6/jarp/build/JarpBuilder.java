@@ -230,8 +230,14 @@ public class JarpBuilder {
 
         @Override
         public FileVisitResult preVisitDirectory(final Path dir, final BasicFileAttributes attrs) throws IOException {
-            final Path jarEntryPath = mSearchRoot.relativize(dir);
-            final JarEntry entry = new JarEntry(mSubdir + "/" + jarEntryPath + "/");
+            final String entryPath;
+            if (mSearchRoot.equals(dir)) {
+                entryPath = mSubdir + "/";
+            } else {
+                final Path jarEntryPath = mSearchRoot.relativize(dir);
+                entryPath = mSubdir + "/" + jarEntryPath + "/";
+            }
+            final JarEntry entry = new JarEntry(entryPath);
             mJar.putNextEntry(entry);
             mJar.closeEntry();
 
