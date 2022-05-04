@@ -195,15 +195,7 @@ public class JarpBuilder {
     }
 
     private boolean isJarpCode(final String entryName) {
-
-        switch (entryName) {
-        case "de":
-        case "de/r3s6":
-        case "de/r3s6/jarp":
-            return true;
-        default:
-            return entryName.startsWith("de/r3s6/jarp") && !entryName.startsWith("de/r3s6/jarp/maven");
-        }
+        return entryName.startsWith("de/r3s6/jarp") && !entryName.startsWith("de/r3s6/jarp/maven");
     }
 
     private void copyPresentation(final JarOutputStream jar, final String sourceDir, final String root)

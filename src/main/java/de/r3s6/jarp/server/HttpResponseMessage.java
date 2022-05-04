@@ -24,8 +24,8 @@ import java.util.Map.Entry;
  * be transfered in chunked mode. It sets appropriate headers ("Content-Length"
  * or "Transfer-Encoding: chunked").
  * <p>
- * Also it knows that for a HEAD request all headers should be set, but the body
- * itself must not be transfered.
+ * Also it knows that for a response to a HEAD request all headers should be
+ * set, but the body itself must not be transfered.
  * <p>
  * The methods {@link #header(String, String)} or {@link #headers(Map)} and
  * {@link #writeBody(byte[])} or {@link #writeBody(InputStream)} has to be

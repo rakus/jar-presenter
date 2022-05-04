@@ -90,7 +90,8 @@ public class ArgsParser {
     /**
      * Add a required argument.
      *
-     * @param name name of the argument. Used when argument could not be filled.
+     * @param name name of the argument. Used for error message when argument could
+     *             not be filled.
      * @return the Argument options. Updated when argument is found.
      */
     public Argument addArgument(final String name) {
@@ -193,7 +194,7 @@ public class ArgsParser {
 
         private String next() {
             final String ret;
-            if (mRest != null && mRest.length() != 0) {
+            if (mRest != null && !mRest.isEmpty()) {
                 ret = OPT_START + mRest.charAt(0);
                 mRest = mRest.substring(1);
             } else {
@@ -216,7 +217,7 @@ public class ArgsParser {
 
         private String fetchArgument() {
             final String ret;
-            if (mRest != null && mRest.length() != 0) {
+            if (mRest != null && !mRest.isEmpty()) {
                 ret = mRest;
                 mRest = null;
             } else {
@@ -338,10 +339,9 @@ public class ArgsParser {
         }
 
         /**
-         * Returns the value parsed from the command line parameter or the default value
-         * (might be {@code null}.
+         * Returns the value parsed from the command line option.
          *
-         * @return the option value
+         * @return the option value or {@code null} when option was not given.
          */
         public String getValue() {
             return mValue;

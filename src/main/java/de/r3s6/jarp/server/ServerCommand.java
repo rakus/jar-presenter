@@ -109,8 +109,6 @@ public final class ServerCommand {
             }
 
             if (mStartBrowser) {
-                // Unfortunately Desktop.getDesktop().browse(uri) didn't work and didn't produce
-                // any error.
                 openBrowser(uri);
             }
 
@@ -239,6 +237,16 @@ public final class ServerCommand {
     }
 
     private void openBrowser(final URI uri) {
+
+        /*-
+         * Unfortunately Desktop.getDesktop().browse(uri) didn't work on Linux.
+         * see https://bugzilla.redhat.com/show_bug.cgi?id=1961119
+         * and https://gitlab.gnome.org/GNOME/gtk/-/issues/4278
+         * and https://bugs.openjdk.java.net/browse/JDK-8275494
+         *
+         * So I decided to use 'xdg-open' on linux. As I couldn't test on other
+         * operating systems, I decided to also go via command line there.
+         */
 
         final String[] command;
 
