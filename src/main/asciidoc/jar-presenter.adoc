@@ -24,11 +24,11 @@ page) with some Java classes into a _executable_ jar to:
 *Usage:*
 
 * `java -jar jar-presenter-{jarp_version}.jar build [options] <jar-name> <presentation-dir>`
-`
+
 * `java -jar jar-presenter-{jarp_version}.jar server [options] [port]`
-`
+
 * `java -jar jar-presenter-{jarp_version}.jar extract <target-dir>`
-`
+
 * `java -jar jar-presenter-{jarp_version}.jar help`
 
 
@@ -39,7 +39,10 @@ presentation.
 
 *Command Line Usage*
 
-`java -jar jar-presenter-{jarp_version}.jar build [-i start-page] jar-name presentation-dir`
+`java -jar jar-presenter-{jarp_version}.jar build [-f] [-i start-page] jar-name presentation-dir`
+
+`-f`::
+Overwrite a already existing jar file.
 
 `-i start-page`::
 Use the given HTML file as the start page (instead of `index.html`).
