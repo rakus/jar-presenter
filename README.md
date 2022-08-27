@@ -124,7 +124,8 @@ used.
 Normal build is easy: `mvn clean package`
 
 The normal build doesn't contain a real presentation. It is runnable, but only
-contains a single [HTML page](src/main/asciidoc/jarp-man.adoc) explaining Jar-Presenter.
+contains a single [HTML page](src/main/asciidoc/jar-presenter.adoc) explaining
+Jar-Presenter.
 
 To build an example with a real presentation run `mvn clean package -Pexample`.
 
