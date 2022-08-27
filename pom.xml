@@ -162,6 +162,16 @@
                 </plugins>
             </build>
         </profile>
+        <profile>
+            <id>empty</id>
+
+            <properties>
+                <maven.install.skip>true</maven.install.skip>
+                <maven.deploy.skip>true</maven.deploy.skip>
+                <skip.html.page>true</skip.html.page>
+            </properties>
+        </profile>
+
     </profiles>
 
 </project>
