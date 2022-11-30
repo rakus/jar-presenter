@@ -11,9 +11,9 @@ import java.util.List;
 
 import de.r3s6.jarp.args.ArgsParser;
 import de.r3s6.jarp.args.ArgsParser.Argument;
+import de.r3s6.jarp.args.ArgsParser.CmdLineArgException;
 import de.r3s6.jarp.args.ArgsParser.Flag;
 import de.r3s6.jarp.args.ArgsParser.ValueOption;
-import de.r3s6.jarp.args.CmdLineArgException;
 
 /**
  * Command to build a new jar-presenter file with the classes from the current
@@ -86,8 +86,8 @@ public final class BuildCommand {
 
             final ValueOption idxOpt = ah.addValueOption('i');
             final Flag forceOpt = ah.addFlag('f');
-            final Argument jarOpt = ah.addArgument("new-jar-name");
-            final Argument dirOpt = ah.addArgument("presentation-dir");
+            final Argument jarOpt = ah.addRequiredArgument("new-jar-name");
+            final Argument dirOpt = ah.addRequiredArgument("presentation-dir");
 
             ah.parse(argList);
 

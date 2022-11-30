@@ -12,6 +12,7 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 
 import de.r3s6.jarp.args.ArgsParser.Argument;
+import de.r3s6.jarp.args.ArgsParser.CmdLineArgException;
 import de.r3s6.jarp.args.ArgsParser.Counter;
 import de.r3s6.jarp.args.ArgsParser.Flag;
 import de.r3s6.jarp.args.ArgsParser.ValueOption;
@@ -23,12 +24,12 @@ class ArgsParserTest {
     }
 
     @Test
-    void test() throws CmdLineArgException {
+    void testShortOption() throws CmdLineArgException {
         final ArgsParser aj = new ArgsParser(ArgsParserTest::showHelp);
         final Flag debugOpt = aj.addFlag('d');
         final ValueOption indexOpt = aj.addValueOption('i');
-        final Argument jarArg = aj.addArgument("jar");
-        final Argument dirArg = aj.addArgument("dir");
+        final Argument jarArg = aj.addRequiredArgument("jar");
+        final Argument dirArg = aj.addRequiredArgument("dir");
         final List<String> optArgs = new ArrayList<>();
         aj.optionalArgumentList(optArgs);
 
@@ -43,12 +44,62 @@ class ArgsParserTest {
     }
 
     @Test
-    void test2() throws CmdLineArgException {
+    void testLongOption() throws CmdLineArgException {
+        final ArgsParser aj = new ArgsParser(ArgsParserTest::showHelp);
+        final Flag debugOpt = aj.addFlag('d', "debug");
+        final ValueOption indexOpt = aj.addValueOption('i', "index");
+        final Argument jarArg = aj.addRequiredArgument("jar");
+        final Argument dirArg = aj.addRequiredArgument("dir");
+        final List<String> optArgs = new ArrayList<>();
+        aj.optionalArgumentList(optArgs);
+
+        aj.parse(Arrays.asList("--index", "demo.html", "jarp.jar", "directory"));
+
+        assertEquals(false, debugOpt.getValue());
+        assertEquals("demo.html", indexOpt.getValue());
+        assertEquals("jarp.jar", jarArg.getValue());
+        assertEquals("directory", dirArg.getValue());
+        assertTrue(optArgs.isEmpty());
+
+    }
+
+    @Test
+    void testLongOptionCombined() throws CmdLineArgException {
+        final ArgsParser aj = new ArgsParser(ArgsParserTest::showHelp);
+        final Flag debugOpt = aj.addFlag('d', "debug");
+        final ValueOption indexOpt = aj.addValueOption('i', "index");
+        final Argument jarArg = aj.addRequiredArgument("jar");
+        final Argument dirArg = aj.addRequiredArgument("dir");
+        final List<String> optArgs = new ArrayList<>();
+        aj.optionalArgumentList(optArgs);
+
+        aj.parse(Arrays.asList("--index=demo.html", "jarp.jar", "directory"));
+
+        assertEquals(false, debugOpt.getValue());
+        assertEquals("demo.html", indexOpt.getValue());
+        assertEquals("jarp.jar", jarArg.getValue());
+        assertEquals("directory", dirArg.getValue());
+        assertTrue(optArgs.isEmpty());
+
+    }
+
+    @Test
+    void testLongOptionCombinedEmpty() throws CmdLineArgException {
+        final ArgsParser aj = new ArgsParser(ArgsParserTest::showHelp);
+        final ValueOption indexOpt = aj.addValueOption('i', "index");
+
+        aj.parse(Arrays.asList("--index="));
+
+        assertEquals("", indexOpt.getValue());
+    }
+
+    @Test
+    void testOptionalArgs() throws CmdLineArgException {
         final ArgsParser aj = new ArgsParser(ArgsParserTest::showHelp);
         final Flag debugOpt = aj.addFlag('d');
         final ValueOption indexOpt = aj.addValueOption('i');
-        final Argument jarArg = aj.addArgument("jar");
-        final Argument dirArg = aj.addArgument("dir");
+        final Argument jarArg = aj.addRequiredArgument("jar");
+        final Argument dirArg = aj.addRequiredArgument("dir");
         final List<String> optArgs = new ArrayList<>();
         aj.optionalArgumentList(optArgs);
 
@@ -65,11 +116,21 @@ class ArgsParserTest {
     }
 
     @Test
-    void testFlag() throws CmdLineArgException {
+    void testFlagShort() throws CmdLineArgException {
         final ArgsParser aj = new ArgsParser(ArgsParserTest::showHelp);
-        final Flag debugOpt = aj.addFlag('d');
+        final Flag debugOpt = aj.addFlag('d', "debug");
 
         aj.parse(Arrays.asList("-d"));
+
+        assertEquals(true, debugOpt.getValue());
+    }
+
+    @Test
+    void testFlagLong() throws CmdLineArgException {
+        final ArgsParser aj = new ArgsParser(ArgsParserTest::showHelp);
+        final Flag debugOpt = aj.addFlag('d', "debug");
+
+        aj.parse(Arrays.asList("--debug"));
 
         assertEquals(true, debugOpt.getValue());
     }
@@ -83,7 +144,39 @@ class ArgsParserTest {
                 () -> aj.parse(Arrays.asList("-d", "-d")));
 
         assertEquals("Duplicate option: -d", ex.getMessage());
+    }
 
+    @Test
+    void testDuplicateFlagExceptionShortLong() {
+        final ArgsParser aj = new ArgsParser(ArgsParserTest::showHelp);
+        aj.addFlag('d', "debug");
+
+        final CmdLineArgException ex = assertThrows(CmdLineArgException.class,
+                () -> aj.parse(Arrays.asList("-d", "--debug")));
+
+        assertEquals("Duplicate option: -d/--debug", ex.getMessage());
+    }
+
+    @Test
+    void testDuplicateFlagExceptionLongShort() {
+        final ArgsParser aj = new ArgsParser(ArgsParserTest::showHelp);
+        aj.addFlag('d', "debug");
+
+        final CmdLineArgException ex = assertThrows(CmdLineArgException.class,
+                () -> aj.parse(Arrays.asList("--debug", "-d")));
+
+        assertEquals("Duplicate option: -d/--debug", ex.getMessage());
+    }
+
+    @Test
+    void testDuplicateFlagExceptionLongLong() {
+        final ArgsParser aj = new ArgsParser(ArgsParserTest::showHelp);
+        aj.addFlag('d', "debug");
+
+        final CmdLineArgException ex = assertThrows(CmdLineArgException.class,
+                () -> aj.parse(Arrays.asList("--debug", "--debug")));
+
+        assertEquals("Duplicate option: -d/--debug", ex.getMessage());
     }
 
     @Test
@@ -105,7 +198,7 @@ class ArgsParserTest {
         final CmdLineArgException ex = assertThrows(CmdLineArgException.class,
                 () -> aj.parse(Arrays.asList("-d", "--unknown")));
 
-        assertEquals("Invalid option: --unknown", ex.getMessage());
+        assertEquals("Unknown option: --unknown", ex.getMessage());
     }
 
     @Test
@@ -115,7 +208,18 @@ class ArgsParserTest {
 
         final IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> aj.addFlag('d'));
 
-        assertEquals("Option char 'd' already used", ex.getMessage());
+        assertEquals("Option '-d' already used", ex.getMessage());
+    }
+
+    @Test
+    void testDuplicateLongOptionDefinitionException() {
+        final ArgsParser aj = new ArgsParser(ArgsParserTest::showHelp);
+        aj.addFlag('d', "debug");
+
+        final IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                () -> aj.addFlag((char) 0, "debug"));
+
+        assertEquals("Option '--debug' already used", ex.getMessage());
     }
 
     @Test
@@ -124,16 +228,17 @@ class ArgsParserTest {
 
         final IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> aj.addFlag('-'));
 
-        assertEquals("Invalid option char '-'", ex.getMessage());
+        assertEquals("Invalid short option '-'", ex.getMessage());
     }
 
     @Test
     void testIllegalOptionDefinitionNulException() {
         final ArgsParser aj = new ArgsParser(ArgsParserTest::showHelp);
 
-        final IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> aj.addFlag((char) 0));
+        final IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                () -> aj.addFlag((char) 0));
 
-        assertEquals("Invalid option char '\0'", ex.getMessage());
+        assertEquals("Either short and/or long option needed", ex.getMessage());
     }
 
     @Test
@@ -142,7 +247,7 @@ class ArgsParserTest {
 
         final IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> aj.addFlag(' '));
 
-        assertEquals("Invalid option char ' '", ex.getMessage());
+        assertEquals("Invalid short option ' '", ex.getMessage());
     }
 
     @Test
@@ -151,7 +256,7 @@ class ArgsParserTest {
 
         final IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> aj.addFlag('\t'));
 
-        assertEquals("Invalid option char '\t'", ex.getMessage());
+        assertEquals("Invalid short option '\t'", ex.getMessage());
     }
 
     @Test
@@ -177,6 +282,29 @@ class ArgsParserTest {
     }
 
     @Test
+    void testValueOptionLong() throws CmdLineArgException {
+        final ArgsParser aj = new ArgsParser(ArgsParserTest::showHelp);
+        final ValueOption f1 = aj.addValueOption('f', "file");
+        final ValueOption f2 = aj.addValueOption('o', "output");
+
+        aj.parse(Arrays.asList("--file=file1", "--output", "file2"));
+
+        assertEquals("file1", f1.getValue());
+        assertEquals("file2", f2.getValue());
+    }
+
+    @Test
+    void testUnusedValue() throws CmdLineArgException {
+        final ArgsParser aj = new ArgsParser(ArgsParserTest::showHelp);
+        aj.addFlag('d', "debug");
+
+        final CmdLineArgException ex = assertThrows(CmdLineArgException.class,
+                () -> aj.parse(Arrays.asList("--debug=file1")));
+
+        assertEquals("Superfluous argument in \"--debug=file1\"", ex.getMessage());
+    }
+
+    @Test
     void testDuplicateValueOptionException() {
         final ArgsParser aj = new ArgsParser(ArgsParserTest::showHelp);
         aj.addValueOption('f');
@@ -189,7 +317,31 @@ class ArgsParserTest {
     }
 
     @Test
-    void testCombindedOtions() throws CmdLineArgException {
+    void testDuplicateValueOptionExceptionShortLong() {
+        final ArgsParser aj = new ArgsParser(ArgsParserTest::showHelp);
+        aj.addValueOption('f', "file");
+
+        final CmdLineArgException ex = assertThrows(CmdLineArgException.class,
+                () -> aj.parse(Arrays.asList("-f", "file", "--file", "other file")));
+
+        assertEquals("Duplicate option: -f/--file", ex.getMessage());
+
+    }
+
+    @Test
+    void testDuplicateValueOptionExceptionShortLongEqual() {
+        final ArgsParser aj = new ArgsParser(ArgsParserTest::showHelp);
+        aj.addValueOption('f', "file");
+
+        final CmdLineArgException ex = assertThrows(CmdLineArgException.class,
+                () -> aj.parse(Arrays.asList("-f", "file", "--file=other file")));
+
+        assertEquals("Duplicate option: -f/--file", ex.getMessage());
+
+    }
+
+    @Test
+    void testCombinedOptions() throws CmdLineArgException {
         final ArgsParser aj = new ArgsParser(ArgsParserTest::showHelp);
         final Flag debugOpt = aj.addFlag('d');
         final Counter cntOpt = aj.addCounter('v');
@@ -220,7 +372,7 @@ class ArgsParserTest {
     void testUnexpectedOptionalArguments() throws CmdLineArgException {
         final ArgsParser aj = new ArgsParser(ArgsParserTest::showHelp);
         aj.addFlag('d');
-        aj.addArgument("jar");
+        aj.addRequiredArgument("jar");
 
         final CmdLineArgException ex = assertThrows(CmdLineArgException.class,
                 () -> aj.parse(Arrays.asList("-d", "jarp.jar", "superfluous")));
@@ -229,15 +381,26 @@ class ArgsParserTest {
     }
 
     @Test
-    void testMissingArgument() throws CmdLineArgException {
+    void testMissingOneArgument() throws CmdLineArgException {
         final ArgsParser aj = new ArgsParser(ArgsParserTest::showHelp);
         aj.addFlag('d');
-        aj.addArgument("jar");
-        aj.addArgument("dir");
+        aj.addRequiredArgument("jar");
 
         final CmdLineArgException ex = assertThrows(CmdLineArgException.class, () -> aj.parse(Arrays.asList("-d")));
 
-        assertEquals("Missing argument(s): jar, dir", ex.getMessage());
+        assertEquals("Missing argument: jar", ex.getMessage());
+    }
+
+    @Test
+    void testMissingMultipleArgument() throws CmdLineArgException {
+        final ArgsParser aj = new ArgsParser(ArgsParserTest::showHelp);
+        aj.addFlag('d');
+        aj.addRequiredArgument("jar");
+        aj.addRequiredArgument("dir");
+
+        final CmdLineArgException ex = assertThrows(CmdLineArgException.class, () -> aj.parse(Arrays.asList("-d")));
+
+        assertEquals("Missing arguments: jar, dir", ex.getMessage());
     }
 
     @Test
@@ -251,10 +414,66 @@ class ArgsParserTest {
     }
 
     @Test
-    void testHelpMethodNull() throws CmdLineArgException {
+    void testMissingOptionValueLong() throws CmdLineArgException {
+        final ArgsParser aj = new ArgsParser(ArgsParserTest::showHelp);
+        aj.addValueOption('o', "output");
+
+        final CmdLineArgException ex = assertThrows(CmdLineArgException.class,
+                () -> aj.parse(Arrays.asList("--output")));
+
+        assertEquals("Missing value for option: --output", ex.getMessage());
+    }
+
+    /**
+     * Tests programmers error: Not providing help method.
+     */
+    @Test
+    void testHelpMethodNull() {
 
         final NullPointerException ex = assertThrows(NullPointerException.class, () -> new ArgsParser(null));
 
         assertEquals("Parameter helpMethod is null", ex.getMessage());
+    }
+
+    /**
+     * Tests programmers error: Providing null instead of argument list.
+     */
+    @Test
+    void testArgsNullList() {
+        final ArgsParser aj = new ArgsParser(ArgsParserTest::showHelp);
+        aj.addValueOption('o', "output");
+
+        final NullPointerException ex = assertThrows(NullPointerException.class,
+                () -> aj.parse((List<String>) null));
+
+        assertEquals("argsList must not be null", ex.getMessage());
+    }
+
+    /**
+     * Tests programmers error: Providing null instead of argument array.
+     */
+    @Test
+    void testArgsNullArray() {
+        final ArgsParser aj = new ArgsParser(ArgsParserTest::showHelp);
+        aj.addValueOption('o', "output");
+
+        final NullPointerException ex = assertThrows(NullPointerException.class,
+                () -> aj.parse((String[]) null));
+
+        assertEquals("args must not be null", ex.getMessage());
+    }
+
+    /**
+     * Tests programmers error: Providing arguments with null element.
+     */
+    @Test
+    void testArgsElementNull() throws CmdLineArgException {
+        final ArgsParser aj = new ArgsParser(ArgsParserTest::showHelp);
+        aj.addFlag('d', "debug");
+
+        final IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                () -> aj.parse(Arrays.asList("-d", null, "test")));
+
+        assertEquals("Argument list must not contain null", ex.getMessage());
     }
 }

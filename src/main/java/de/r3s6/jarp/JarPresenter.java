@@ -84,6 +84,8 @@ public final class JarPresenter {
 
     private static void showHelp() {
 
+        System.out.println("USAGE: java -jar jar-presenter.jar <command> [command-options]");
+
         System.out.println();
         ServerCommand.showHelp();
         System.out.println();

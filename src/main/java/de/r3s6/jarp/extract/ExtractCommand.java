@@ -19,8 +19,8 @@ import java.util.jar.JarFile;
 import de.r3s6.jarp.JarPresenter;
 import de.r3s6.jarp.args.ArgsParser;
 import de.r3s6.jarp.args.ArgsParser.Argument;
+import de.r3s6.jarp.args.ArgsParser.CmdLineArgException;
 import de.r3s6.jarp.args.ArgsParser.Flag;
-import de.r3s6.jarp.args.CmdLineArgException;
 
 /**
  * Extract command extracts the presentation from the jar to a given directory
@@ -129,7 +129,7 @@ public final class ExtractCommand {
         try {
             final ArgsParser ah = new ArgsParser(ExtractCommand::showHelp);
             final Flag force = ah.addFlag('f');
-            final Argument tgtOpt = ah.addArgument("target-dir");
+            final Argument tgtOpt = ah.addRequiredArgument("target-dir");
 
             ah.parse(argList);
 

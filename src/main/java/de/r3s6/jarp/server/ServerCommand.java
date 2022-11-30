@@ -26,9 +26,9 @@ import javax.swing.event.HyperlinkEvent;
 import javax.swing.event.HyperlinkListener;
 
 import de.r3s6.jarp.args.ArgsParser;
+import de.r3s6.jarp.args.ArgsParser.CmdLineArgException;
 import de.r3s6.jarp.args.ArgsParser.Counter;
 import de.r3s6.jarp.args.ArgsParser.Flag;
-import de.r3s6.jarp.args.CmdLineArgException;
 
 /**
  * Command that starts a HTTP server and serves the presentation. directory in
