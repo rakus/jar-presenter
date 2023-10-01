@@ -7,10 +7,10 @@
 package de.r3s6.jarp.server;
 
 import java.awt.BorderLayout;
+import java.awt.Desktop;
 import java.awt.EventQueue;
 import java.awt.GraphicsEnvironment;
 import java.io.IOException;
-import java.lang.ProcessBuilder.Redirect;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
@@ -228,39 +228,10 @@ public final class ServerCommand {
     }
 
     private void openBrowser(final URI uri) {
-
-        /*-
-         * Unfortunately Desktop.getDesktop().browse(uri) didn't work on Linux.
-         * see https://bugzilla.redhat.com/show_bug.cgi?id=1961119
-         * and https://gitlab.gnome.org/GNOME/gtk/-/issues/4278
-         * and https://bugs.openjdk.java.net/browse/JDK-8275494
-         *
-         * So I decided to use 'xdg-open' on linux. As I couldn't test on other
-         * operating systems, I decided to also go via command line there.
-         */
-
-        final String[] command;
-
-        switch (OsType.DETECTED) {
-        case Windows:
-            command = new String[] { "cmd", "/C", "start", uri.toString() };
-            break;
-        case MacOS:
-            command = new String[] { "open", uri.toString() };
-            break;
-        default:
-            // Linux and other systems. Assuming "other" is some unix-like flavor.
-            command = new String[] { "xdg-open", uri.toString() };
-            break;
-        }
-
-        final ProcessBuilder processBuilder = new ProcessBuilder(command);
-        processBuilder.redirectOutput(Redirect.DISCARD);
-        processBuilder.redirectError(Redirect.DISCARD);
         try {
-            processBuilder.start();
+            Desktop.getDesktop().browse(uri);
         } catch (final IOException e) {
-            reportError("Failed to start command", String.join(" ", command), e.toString());
+            reportError("Failed to open browser", e.toString());
         }
     }
 
