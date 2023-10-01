@@ -96,7 +96,7 @@ final class Logger {
     void doLog(final PrintStream stream, final String message, final Throwable thr) {
         final LocalDateTime now = LocalDateTime.now();
 
-        final StringBuffer sb = new StringBuffer();
+        final StringBuilder sb = new StringBuilder();
         sb.append(now).append(" [").append(Thread.currentThread().getId()).append("] ").append(message);
         stream.println(sb.toString());
         if (thr != null) {

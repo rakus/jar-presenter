@@ -186,7 +186,6 @@ public class HttpServerchen implements Closeable {
         if (!mServerSocket.isClosed()) {
             mServerSocket.close();
         }
-        return;
     }
 
     private void handleClient(final Socket client) {
@@ -199,8 +198,7 @@ public class HttpServerchen implements Closeable {
 
         final String host = client.getLocalAddress().getCanonicalHostName() + ":" + client.getLocalPort();
 
-        try {
-            final BufferedReader br = new BufferedReader(new InputStreamReader(client.getInputStream()));
+        try (BufferedReader br = new BufferedReader(new InputStreamReader(client.getInputStream()))) {
 
             while (!client.isClosed() && !client.isInputShutdown()) {
                 final HttpRequest req = readRequest(br, host);
@@ -364,7 +362,7 @@ public class HttpServerchen implements Closeable {
     }
 
     private boolean validatePath(final String path) {
-        final String[] parts = path.split("[\\/]");
+        final String[] parts = path.split("[\\\\/]");
         int depth = 0;
 
         for (final String string : parts) {

@@ -22,8 +22,8 @@ import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.UIManager;
+import javax.swing.WindowConstants;
 import javax.swing.event.HyperlinkEvent;
-import javax.swing.event.HyperlinkListener;
 
 import de.r3s6.jarp.args.ArgsParser;
 import de.r3s6.jarp.args.ArgsParser.CmdLineArgException;
@@ -82,14 +82,11 @@ public final class ServerCommand {
 
         try (HttpServerchen srv = new HttpServerchen(mServerPort)) {
             final int port = srv.getPort();
-            final Runnable r = new Runnable() {
-                @Override
-                public void run() {
-                    try {
-                        srv.serve();
-                    } catch (final IOException e) {
-                        throw new RuntimeException(e);
-                    }
+            final Runnable r = () -> {
+                try {
+                    srv.serve();
+                } catch (final IOException e) {
+                    throw new IllegalStateException("Unexpected exception: " + e.toString(), e);
                 }
             };
 
@@ -112,14 +109,13 @@ public final class ServerCommand {
                 openBrowser(uri);
             }
 
-            try {
-                serverThread.join();
-            } catch (final InterruptedException e) {
-                // IGNORED
-            }
+            serverThread.join();
+
         } catch (final IOException e) {
             reportError("Can't start HttpServerchen: " + e.toString());
             System.exit(1);
+        } catch (final InterruptedException e) {
+            reportError("HttpServerchen interrupted: " + e.toString());
         }
         System.exit(0);
     }
@@ -167,10 +163,10 @@ public final class ServerCommand {
         }
     }
 
-    private void setPort(final String fetchArgument) {
-        final int port = Integer.parseInt(fetchArgument);
+    private void setPort(final String portArgument) {
+        final int port = Integer.parseInt(portArgument);
         if (port < 0 && port > 65535) { // NOCS: MagicNumber
-            throw new RuntimeException("Port out of range 0 - 65535");
+            throw new IllegalArgumentException("Port out of range 0 - 65535: " + port);
         }
         mServerPort = port;
     }
@@ -181,7 +177,7 @@ public final class ServerCommand {
         } else {
             // Show gui error message
 
-            final StringBuffer sb = new StringBuffer();
+            final StringBuilder sb = new StringBuilder();
             sb.append("<html><body>");
             for (final String line : messages) {
                 sb.append("<p>").append(line).append("</p>");
@@ -209,19 +205,14 @@ public final class ServerCommand {
         msgPane.setBackground(new JLabel().getBackground());
 
         // handle link events
-        msgPane.addHyperlinkListener(new HyperlinkListener() {
-            @Override
-            public void hyperlinkUpdate(final HyperlinkEvent e) {
-                if (e.getEventType().equals(HyperlinkEvent.EventType.ACTIVATED)) {
-                    openBrowser(uri);
-                }
+        msgPane.addHyperlinkListener(event -> {
+            if (event.getEventType().equals(HyperlinkEvent.EventType.ACTIVATED)) {
+                openBrowser(uri);
             }
         });
 
         final JButton stopButton = new JButton("Stop Server");
-        stopButton.addActionListener(e -> {
-            System.exit(0);
-        });
+        stopButton.addActionListener(e -> System.exit(0));
 
         final Icon icon = UIManager.getIcon("OptionPane.informationIcon");
 
@@ -229,7 +220,7 @@ public final class ServerCommand {
                 icon, new Object[] { stopButton });
 
         final JFrame frame = new JFrame("Jar Presentation Server");
-        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
         frame.getContentPane().add(optPane, BorderLayout.CENTER);
         frame.pack();
         frame.setLocationRelativeTo(null);

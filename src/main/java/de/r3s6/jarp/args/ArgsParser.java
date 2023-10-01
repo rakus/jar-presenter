@@ -335,7 +335,7 @@ public class ArgsParser {
                         }
                         ((ValueOption) o).found(value);
                     } else {
-                        throw new RuntimeException("Unknown option type");
+                        throw new IllegalStateException("Unknown option type - BUG");
                     }
                 }
             } else {
@@ -350,7 +350,7 @@ public class ArgsParser {
     }
 
     private void handleArg(final String param) throws CmdLineArgException {
-        if (mArguments.size() > 0) {
+        if (!mArguments.isEmpty()) {
             final Argument arg = mArguments.remove(0);
             arg.found(param);
         } else if (mAdditionalArguments != null) {
