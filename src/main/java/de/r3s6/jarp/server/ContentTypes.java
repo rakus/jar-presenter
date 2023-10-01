@@ -8,6 +8,7 @@ package de.r3s6.jarp.server;
 
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 
 import de.r3s6.jarp.Utilities;
@@ -24,7 +25,7 @@ import de.r3s6.jarp.Utilities;
  *
  * Supported content encoding are gzip, compress, bzip2, xz and br.
  *
- * <b>Important</b>: File extensions are case-sensitive!
+ * File extensions are case-INsensitive!
  *
  * @author Ralf Schandl
  */
@@ -157,7 +158,7 @@ final class ContentTypes {
     }
 
     private String lookupType(final String fileExtension) {
-        return mTypeMap.getOrDefault(fileExtension, OCTETT_STREAM);
+        return mTypeMap.getOrDefault(fileExtension.toLowerCase(Locale.ROOT), OCTETT_STREAM);
     }
 
     private String lookupEncoding(final String fileExtension) {
