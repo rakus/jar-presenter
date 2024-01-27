@@ -37,7 +37,7 @@ class HttpResponseMessageTest {
         assertEquals(5, parts.length);
         assertEquals("HTTP/1.1 200 OK", parts[0]);
         // Can only determine version when packed in JAR
-        assertEquals("Server: Jar Presenter vUNKNOWN", parts[1]);
+        assertEquals("Server: Jar-Presenter/UNKNOWN", parts[1]);
         assertEquals("Test: test", parts[2]);
         assertEquals("", parts[3]);
         assertEquals("", parts[4]);
@@ -65,7 +65,7 @@ class HttpResponseMessageTest {
         assertEquals(6, parts.length);
         assertEquals("HTTP/1.1 200 OK", parts[0]);
         // Can only determine version when packed in JAR
-        assertEquals("Server: Jar Presenter vUNKNOWN", parts[1]);
+        assertEquals("Server: Jar-Presenter/UNKNOWN", parts[1]);
         assertEquals("Test: test", parts[2]);
         assertEquals("Content-Length: 8", parts[3]);
         assertEquals("", parts[4]);
@@ -94,7 +94,7 @@ class HttpResponseMessageTest {
         assertEquals(6, parts.length);
         assertEquals("HTTP/1.1 200 OK", parts[0]);
         // Can only determine version when packed in JAR
-        assertEquals("Server: Jar Presenter vUNKNOWN", parts[1]);
+        assertEquals("Server: Jar-Presenter/UNKNOWN", parts[1]);
         assertEquals("Test: test", parts[2]);
         assertEquals("Content-Length: 0", parts[3]);
         assertEquals("", parts[4]);
@@ -123,7 +123,7 @@ class HttpResponseMessageTest {
         assertEquals(6, parts.length);
         assertEquals("HTTP/1.1 200 OK", parts[0]);
         // Can only determine version when packed in JAR
-        assertEquals("Server: Jar Presenter vUNKNOWN", parts[1]);
+        assertEquals("Server: Jar-Presenter/UNKNOWN", parts[1]);
         assertEquals("Test: test", parts[2]);
         assertEquals("Content-Length: 10", parts[3]);
         assertEquals("", parts[4]);
@@ -152,7 +152,7 @@ class HttpResponseMessageTest {
         assertEquals(6, parts.length);
         assertEquals("HTTP/1.1 200 OK", parts[0]);
         // Can only determine version when packed in JAR
-        assertEquals("Server: Jar Presenter vUNKNOWN", parts[1]);
+        assertEquals("Server: Jar-Presenter/UNKNOWN", parts[1]);
         assertEquals("Test: test", parts[2]);
         assertEquals("Content-Length: 1048575", parts[3]);
         assertEquals("", parts[4]);
@@ -181,7 +181,7 @@ class HttpResponseMessageTest {
         assertEquals(10, parts.length);
         assertEquals("HTTP/1.1 200 OK", parts[0]);
         // Can only determine version when packed in JAR
-        assertEquals("Server: Jar Presenter vUNKNOWN", parts[1]);
+        assertEquals("Server: Jar-Presenter/UNKNOWN", parts[1]);
         assertEquals("Test: test", parts[2]);
         assertEquals("Transfer-Encoding: chunked", parts[3]);
         assertEquals("", parts[4]);
@@ -214,7 +214,7 @@ class HttpResponseMessageTest {
         assertEquals(12, parts.length);
         assertEquals("HTTP/1.1 200 OK", parts[0]);
         // Can only determine version when packed in JAR
-        assertEquals("Server: Jar Presenter vUNKNOWN", parts[1]);
+        assertEquals("Server: Jar-Presenter/UNKNOWN", parts[1]);
         assertEquals("Test: test", parts[2]);
         assertEquals("Transfer-Encoding: chunked", parts[3]);
         assertEquals("", parts[4]);
@@ -249,7 +249,7 @@ class HttpResponseMessageTest {
         assertEquals(12, parts.length);
         assertEquals("HTTP/1.1 200 OK", parts[0]);
         // Can only determine version when packed in JAR
-        assertEquals("Server: Jar Presenter vUNKNOWN", parts[1]);
+        assertEquals("Server: Jar-Presenter/UNKNOWN", parts[1]);
         assertEquals("Test: test", parts[2]);
         assertEquals("Transfer-Encoding: chunked", parts[3]);
         assertEquals("", parts[4]);

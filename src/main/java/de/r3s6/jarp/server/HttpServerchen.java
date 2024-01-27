@@ -166,20 +166,18 @@ public class HttpServerchen implements Closeable {
      */
     public void serve() throws IOException {
         LOGGER.info("Listening on port " + mServerSocket.getLocalPort());
-        while (true) {
-            try {
+        try {
+            while (true) {
                 final Socket client = mServerSocket.accept();
-                if (mShutdown) {
-                    break;
-
-                }
-                new Thread(() -> handleClient(client)).start();
-            } catch (final IOException e) {
-                if (mShutdown) {
-                    break;
+                if (!mShutdown) {
+                    new Thread(() -> handleClient(client)).start();
                 } else {
-                    throw e;
+                    break;
                 }
+            }
+        } catch (final IOException e) {
+            if (!mShutdown) {
+                throw e;
             }
         }
         LOGGER.info("Shutting down");

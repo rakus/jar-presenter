@@ -82,7 +82,7 @@ public class HttpResponseMessage implements Closeable, Flushable {
 
         println("HTTP/1.1 " + status);
         mState = State.HEADER;
-        header("Server", "Jar Presenter v" + SRV_VERSION);
+        header("Server", "Jar-Presenter/" + SRV_VERSION);
     }
 
     /**

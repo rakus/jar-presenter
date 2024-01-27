@@ -15,7 +15,9 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Represents a simple TTP request.
+ * Represents a simple HTTP request.
+ * <p>
+ * Note: All HTTP header names are lower case.
  *
  * @author Ralf Schandl
  */
@@ -24,6 +26,8 @@ class HttpRequest {
     private final String mVersion;
     private final Map<String, String> mHeaders;
     private final URL mUrl;
+
+    private final boolean mKeepAlive;
 
     HttpRequest(final HttpRequest.Builder builder) throws MalformedURLException {
         mMethod = builder.mMethod;
@@ -37,6 +41,8 @@ class HttpRequest {
             Logger.instance().error("Invalid request URL: " + url, e);
             throw new MalformedURLException(e.getMessage());
         }
+
+        mKeepAlive = "keep-alive".equalsIgnoreCase(mHeaders.get("connection"));
     }
 
     public String getMethod() {
@@ -60,11 +66,11 @@ class HttpRequest {
     }
 
     public String getHeader(final String name) {
-        return mHeaders.get(name);
+        return mHeaders.get(name.toLowerCase());
     }
 
     public boolean isKeepAlive() {
-        return "keep-alive".equals(mHeaders.get("Connection"));
+        return mKeepAlive;
     }
 
     static class Builder {
@@ -95,7 +101,7 @@ class HttpRequest {
         }
 
         HttpRequest.Builder addHeader(final String name, final String value) {
-            mHeaders.put(name, value);
+            mHeaders.put(name.toLowerCase(), value);
             return this;
         }
 
