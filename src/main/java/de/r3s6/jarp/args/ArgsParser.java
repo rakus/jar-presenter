@@ -97,6 +97,7 @@ public class ArgsParser {
     private static final String OPT_START = "-";
     private static final String LONG_OPT_START = "--";
     private static final String OPT_ARG_DELIM = "--";
+    private static final String HELP_OPTION = "--help";
 
     private final Runnable mHelpMethod;
 
@@ -314,7 +315,9 @@ public class ArgsParser {
             if (!argsOnly && param.startsWith(OPT_START)) {
                 if (OPT_ARG_DELIM.equals(param)) {
                     argsOnly = true;
-                } else if ("--help".equals(param)) {
+                } else if (OPT_START.equals(param)) {
+                    handleArg(param);
+                } else if (HELP_OPTION.equals(param)) {
                     mHelpMethod.run();
                     System.exit(0);
                 } else {
@@ -323,7 +326,6 @@ public class ArgsParser {
                         throw new CmdLineArgException("Unknown option: " + param);
                     } else if (!o.isSettable()) {
                         throw new CmdLineArgException("Duplicate option: " + String.join("/", o.getOptions()));
-
                     } else if (o instanceof Flag) {
                         ((Flag) o).found();
                     } else if (o instanceof Counter) {
@@ -415,6 +417,8 @@ public class ArgsParser {
                         } else {
                             ret = a;
                         }
+                    } else if (a.equals(OPT_START)) {
+                        ret = OPT_START;
                     } else if (a.startsWith(OPT_START)) {
                         ret = OPT_START + a.charAt(1);
                         mLeftOver = a.substring(2);
@@ -460,7 +464,7 @@ public class ArgsParser {
     }
 
     /**
-     * Interface for Options.
+     * Base class for Options.
      */
     private abstract static class Option {
 
@@ -472,14 +476,14 @@ public class ArgsParser {
                 if (shotOption == '-' || Character.isWhitespace(shotOption)) {
                     throw new IllegalArgumentException("Invalid short option '" + shotOption + "'");
                 }
-                opts.add("-" + shotOption);
+                opts.add(OPT_START + shotOption);
             }
             if (longOption != null) {
                 if (longOption.startsWith("-") || longOption.length() < 2 || longOption.matches(".*[\\s=\\\\].*")) {
                     throw new IllegalArgumentException("Invalid long option '" + longOption + "'");
                 }
 
-                opts.add("--" + longOption);
+                opts.add(LONG_OPT_START + longOption);
             }
             if (opts.isEmpty()) {
                 throw new IllegalArgumentException("Either short and/or long option needed");
@@ -501,8 +505,7 @@ public class ArgsParser {
          * Whether the value is settable and can be processed. For duplicate option
          * detection.
          *
-         * Returns {@code true} when the option was already set, except for
-         * {@link Counter} options.
+         * For counting options this always returns {@code true};
          *
          * @return whether the option can be processed.
          */
@@ -550,7 +553,7 @@ public class ArgsParser {
         }
 
         /**
-         * Always returns false. {@inheritDoc}
+         * Always returns true. {@inheritDoc}
          */
         @Override
         protected boolean isSettable() {

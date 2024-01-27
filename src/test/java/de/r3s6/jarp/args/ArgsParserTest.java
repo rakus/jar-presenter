@@ -5,11 +5,18 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.security.Permission;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledForJreRange;
+import org.junit.jupiter.api.condition.JRE;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import de.r3s6.jarp.args.ArgsParser.Argument;
 import de.r3s6.jarp.args.ArgsParser.CmdLineArgException;
@@ -19,8 +26,41 @@ import de.r3s6.jarp.args.ArgsParser.ValueOption;
 
 class ArgsParserTest {
 
+    private static int sHelpCounter = 0;
+
     public static void showHelp() {
-        // Intentionally left blank
+        sHelpCounter++;
+    }
+
+    @BeforeEach
+    void reset() {
+        sHelpCounter = 0;
+    }
+
+    /**
+     * This test tests --help and needs the SecurityManager to prevent
+     * {@link System#exit}. The SecurityManager is deprecated in Java17 and
+     * {@link System#setSecurityManager(SecurityManager)} throws a
+     * UnsupportedOperationException in Java18.
+     */
+    @Test
+    @EnabledForJreRange(min = JRE.JAVA_11, max = JRE.JAVA_17)
+    void testHelp() throws CmdLineArgException {
+        final SecurityManager orgSecurityManager = System.getSecurityManager();
+        try {
+            System.setSecurityManager(new NoExitSecurityManager());
+
+            final ArgsParser aj = new ArgsParser(ArgsParserTest::showHelp);
+
+            final ExitCodeException ex = assertThrows(ExitCodeException.class,
+                    () -> aj.parse(new String[] { "--help" }));
+
+            assertEquals(1, sHelpCounter);
+            assertEquals(0, ex.getExitCode());
+
+        } finally {
+            System.setSecurityManager(orgSecurityManager);
+        }
     }
 
     @Test
@@ -41,6 +81,21 @@ class ArgsParserTest {
         assertEquals("directory", dirArg.getValue());
         assertTrue(optArgs.isEmpty());
 
+    }
+
+    @Test
+    void testSingleDashArgument() throws CmdLineArgException {
+        final ArgsParser aj = new ArgsParser(ArgsParserTest::showHelp);
+        final Flag debugOpt = aj.addFlag('d');
+        final List<String> optArgs = new ArrayList<>();
+        aj.optionalArgumentList(optArgs);
+
+        aj.parse(Arrays.asList("-d", "-", "demo.html"));
+
+        assertEquals(true, debugOpt.getValue());
+        assertFalse(optArgs.isEmpty());
+        assertEquals("-", optArgs.get(0));
+        assertEquals("demo.html", optArgs.get(1));
     }
 
     @Test
@@ -84,13 +139,23 @@ class ArgsParserTest {
     }
 
     @Test
-    void testLongOptionCombinedEmpty() throws CmdLineArgException {
+    void testLongOptionCombinedEmptyValue() throws CmdLineArgException {
         final ArgsParser aj = new ArgsParser(ArgsParserTest::showHelp);
         final ValueOption indexOpt = aj.addValueOption('i', "index");
 
         aj.parse(Arrays.asList("--index="));
 
         assertEquals("", indexOpt.getValue());
+    }
+
+    @Test
+    void testLongOptionCombinedEmptyName() throws CmdLineArgException {
+        final ArgsParser aj = new ArgsParser(ArgsParserTest::showHelp);
+
+        final CmdLineArgException ex = assertThrows(CmdLineArgException.class,
+                () -> aj.parse(Arrays.asList("--=hello")));
+
+        assertEquals("Superfluous argument in \"--=hello\"", ex.getMessage());
     }
 
     @Test
@@ -136,45 +201,23 @@ class ArgsParserTest {
     }
 
     @Test
-    void testDuplicateFlagException() {
+    void testParseStringArray() throws CmdLineArgException {
         final ArgsParser aj = new ArgsParser(ArgsParserTest::showHelp);
-        aj.addFlag('d');
+        final Flag debugOpt = aj.addFlag('d', "debug");
 
-        final CmdLineArgException ex = assertThrows(CmdLineArgException.class,
-                () -> aj.parse(Arrays.asList("-d", "-d")));
+        aj.parse(new String[] { "--debug" });
 
-        assertEquals("Duplicate option: -d", ex.getMessage());
+        assertEquals(true, debugOpt.getValue());
     }
 
-    @Test
-    void testDuplicateFlagExceptionShortLong() {
+    @ParameterizedTest
+    @CsvSource({ "-d,-d", "-d,--debug", "--debug,-d", "--debug,--debug" })
+    void testDuplicateFlagException(final String first, final String second) {
         final ArgsParser aj = new ArgsParser(ArgsParserTest::showHelp);
         aj.addFlag('d', "debug");
 
         final CmdLineArgException ex = assertThrows(CmdLineArgException.class,
-                () -> aj.parse(Arrays.asList("-d", "--debug")));
-
-        assertEquals("Duplicate option: -d/--debug", ex.getMessage());
-    }
-
-    @Test
-    void testDuplicateFlagExceptionLongShort() {
-        final ArgsParser aj = new ArgsParser(ArgsParserTest::showHelp);
-        aj.addFlag('d', "debug");
-
-        final CmdLineArgException ex = assertThrows(CmdLineArgException.class,
-                () -> aj.parse(Arrays.asList("--debug", "-d")));
-
-        assertEquals("Duplicate option: -d/--debug", ex.getMessage());
-    }
-
-    @Test
-    void testDuplicateFlagExceptionLongLong() {
-        final ArgsParser aj = new ArgsParser(ArgsParserTest::showHelp);
-        aj.addFlag('d', "debug");
-
-        final CmdLineArgException ex = assertThrows(CmdLineArgException.class,
-                () -> aj.parse(Arrays.asList("--debug", "--debug")));
+                () -> aj.parse(Arrays.asList(first, second)));
 
         assertEquals("Duplicate option: -d/--debug", ex.getMessage());
     }
@@ -222,13 +265,15 @@ class ArgsParserTest {
         assertEquals("Option '--debug' already used", ex.getMessage());
     }
 
-    @Test
-    void testIllegalOptionDefinitionDashException() {
+    @ParameterizedTest
+    @ValueSource(chars = { ' ', '-', '\t', '\n' })
+    void testIllegalShortOptionDefinition(final char optChar) {
         final ArgsParser aj = new ArgsParser(ArgsParserTest::showHelp);
 
-        final IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> aj.addFlag('-'));
+        final IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                () -> aj.addFlag(optChar));
 
-        assertEquals("Invalid short option '-'", ex.getMessage());
+        assertEquals("Invalid short option '" + optChar + "'", ex.getMessage());
     }
 
     @Test
@@ -241,22 +286,15 @@ class ArgsParserTest {
         assertEquals("Either short and/or long option needed", ex.getMessage());
     }
 
-    @Test
-    void testIllegalOptionDefinitionSpaceException() {
+    @ParameterizedTest
+    @ValueSource(strings = { "-long", "l", " long", "lo ng", "long ", "lo\tng", "long=", "long=true" })
+    void testIllegalLongOptionDefinition(final String longOpt) {
         final ArgsParser aj = new ArgsParser(ArgsParserTest::showHelp);
 
-        final IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> aj.addFlag(' '));
+        final IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                () -> aj.addFlag('\0', longOpt));
 
-        assertEquals("Invalid short option ' '", ex.getMessage());
-    }
-
-    @Test
-    void testIllegalOptionDefinitionTabException() {
-        final ArgsParser aj = new ArgsParser(ArgsParserTest::showHelp);
-
-        final IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> aj.addFlag('\t'));
-
-        assertEquals("Invalid short option '\t'", ex.getMessage());
+        assertEquals("Invalid long option '" + longOpt + "'", ex.getMessage());
     }
 
     @Test
@@ -472,8 +510,37 @@ class ArgsParserTest {
         aj.addFlag('d', "debug");
 
         final IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
-                () -> aj.parse(Arrays.asList("-d", null, "test")));
+                () -> aj.parse(new String[] { "-d", null, "test" }));
 
         assertEquals("Argument list must not contain null", ex.getMessage());
+    }
+
+    private static class NoExitSecurityManager extends SecurityManager {
+
+        @Override
+        public void checkPermission(final Permission perm) {
+        }
+
+        @Override
+        public void checkExit(final int status) {
+            throw new ExitCodeException(status);
+        }
+    }
+
+    private static class ExitCodeException extends RuntimeException {
+
+        private static final long serialVersionUID = 1L;
+
+        private final int mExitCode;
+
+        public ExitCodeException(final int exitCode) {
+            super();
+            mExitCode = exitCode;
+        }
+
+        public int getExitCode() {
+            return mExitCode;
+        }
+
     }
 }
