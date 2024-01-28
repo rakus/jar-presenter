@@ -384,9 +384,13 @@ public class HttpServerchen implements Closeable {
         return true;
     }
 
-    private void handleRequest(final Socket client, final HttpRequest request) {
+    private void handleRequest(final Socket client, final HttpRequest request) throws IOException {
 
         final String fn = "/".equals(request.getPath()) ? "/index.html" : request.getPath();
+        if (accessProtectedFile(fn)) {
+            send404Response(client, request);
+            return;
+        }
 
         final String resource = mRootDir + mFileMap.getOrDefault(fn, fn);
         LOGGER.debug("Serving: " + request.getPath() + " -> " + resource);
@@ -406,10 +410,12 @@ public class HttpServerchen implements Closeable {
                 // 404
                 send404Response(client, request);
             }
-        } catch (final IOException e) {
-            LOGGER.debug("Error closing resource: " + e.toString());
         }
 
+    }
+
+    private boolean accessProtectedFile(final String fn) {
+        return fn.endsWith("jarp-filemap.properties");
     }
 
     private void sendMethodNotImplementedResponse(final Socket client, final HttpRequest request) throws IOException {
