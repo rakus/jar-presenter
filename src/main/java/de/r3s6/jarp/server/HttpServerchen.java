@@ -57,6 +57,9 @@ public class HttpServerchen implements Closeable {
     // HTTP date format according to RFC 7231 (7.1.1.1)
     private static final String HTTP_DATE_FMT = "EEE, dd MMM yyyy HH:mm:ss z";
 
+    private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern(HTTP_DATE_FMT, Locale.ENGLISH)
+            .withZone(ZoneId.of("GMT"));
+
     private static final String METHOD_GET = "GET";
 
     private static final String METHOD_HEAD = "HEAD";
@@ -116,8 +119,7 @@ public class HttpServerchen implements Closeable {
         mFileMap = Utilities.readPropertyMapResource(mRootDir + "/" + JarPresenter.FILEMAP_BASENAME, mClassLoader);
 
         mStartTime = OffsetDateTime.now();
-        mStartTimeFormatted = DateTimeFormatter.ofPattern(HTTP_DATE_FMT, Locale.ENGLISH).withZone(ZoneId.of("GMT"))
-                .format(mStartTime);
+        mStartTimeFormatted = DATE_FORMATTER.format(mStartTime);
     }
 
     /**
@@ -471,8 +473,7 @@ public class HttpServerchen implements Closeable {
             }
             // Disable caching
             respHeaders.putIfAbsent("Cache-Control", "no-cache, no-store, must-revalidate");
-            respHeaders.putIfAbsent("Pragma", "no-cache");
-            respHeaders.putIfAbsent("Expires", "0");
+            respHeaders.put("Date", DATE_FORMATTER.format(OffsetDateTime.now()));
 
             respHeaders.put("Last-Modified", mStartTimeFormatted);
             clientOutput.headers(respHeaders);
