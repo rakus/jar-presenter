@@ -21,11 +21,11 @@ The minimalistic HTTP server
 
 ---
 
-If requested with `-b` the default web browser is started automatically and
-will show the presentation.
-
 By default a small GUI dialog is opened to show the server address and to
 stop the server. Use `-t` to use terminal only.
+
+If requested with `-b` the default web browser is started automatically and
+will show the presentation.
 
 **Help output:**
 

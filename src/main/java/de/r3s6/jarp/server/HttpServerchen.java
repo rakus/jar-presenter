@@ -198,7 +198,13 @@ public class HttpServerchen implements Closeable {
 
         final String host = client.getLocalAddress().getCanonicalHostName() + ":" + client.getLocalPort();
 
-        try (BufferedReader br = new BufferedReader(new InputStreamReader(client.getInputStream()))) {
+        try {
+            /*
+             * Not try-with-resource, as this would close the client socket before exception
+             * handling and hence prevent sending error responses.
+             */
+
+            final BufferedReader br = new BufferedReader(new InputStreamReader(client.getInputStream()));
 
             while (!client.isClosed() && !client.isInputShutdown()) {
                 final HttpRequest req = readRequest(br, host);
@@ -310,11 +316,18 @@ public class HttpServerchen implements Closeable {
 
         builder.host(host);
 
-        lines.stream().skip(1).forEach(s -> {
-            final String name = s.substring(0, s.indexOf(":"));
-            final String value = s.substring(s.indexOf(":") + 1).trim();
+        for (final String headerLine : lines.subList(1, lines.size())) {
+            final int colonIdx = headerLine.indexOf(":");
+            if (colonIdx <= 0) {
+                throw new InvalidRequestException("Invalid request header line: " + headerLine);
+            }
+            final String name = headerLine.substring(0, colonIdx).trim();
+            if (name.isEmpty()) {
+                throw new InvalidRequestException("Invalid request header line: " + headerLine);
+            }
+            final String value = headerLine.substring(colonIdx + 1).trim();
             builder.addHeader(name, value);
-        });
+        }
 
         return builder.build();
     }
