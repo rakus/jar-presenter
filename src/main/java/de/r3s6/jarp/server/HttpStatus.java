@@ -19,6 +19,8 @@ public enum HttpStatus {
     BAD_REQUEST(400, "Bad Request"),
     /** 404 - Not Found. */
     NOT_FOUND(404, "Not Found"),
+    /** 500 - Internal Server Error. */
+    INTERNAL_SERVER_ERROR(500, "InternalServer Error"),
     /** 501 - Not Implemented. */
     NOT_IMPLEMENTED(501, "Not Implemented");
 

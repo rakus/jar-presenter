@@ -12,6 +12,8 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.net.HttpRetryException;
 import java.net.InetAddress;
 import java.net.ServerSocket;
@@ -22,6 +24,8 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
@@ -76,6 +80,9 @@ public class HttpServerchen implements Closeable {
 
     private static final String HTTP400_FMT = "<html><head><meta charset=\"utf-8\"><title>Bad Request</title></head>"
             + "<body><p>%s</p><tt>%s</tt><p><sub>jar presenter</sub></p></body></html>";
+
+    private static final String HTTP500_FMT = "<html><head><meta charset=\"utf-8\"><title>Internal Server Error</title></head>"
+            + "<body><p>Embarrassing...</p><tt>%s</tt><p><sub>jar presenter</sub></p></body></html>";
 
     private static final String HTTP501_FMT = "<html><head><meta charset=\"utf-8\"><title>Not Implemented</title></head>"
             + "<body><p>Support for HTTP Method '%s' not implemented.</p>"
@@ -246,14 +253,24 @@ public class HttpServerchen implements Closeable {
             LOGGER.debug(e.toString(), e);
         } catch (final SocketTimeoutException e) {
             // IGNORED No incoming data for long time. Closing Socket.
+            // Should we send a HTTP 408 here?
             LOGGER.debug(e.toString());
         } catch (final IOException e) {
             LOGGER.error(e.toString(), e);
         } catch (final InvalidRequestException e) {
+            LOGGER.error("Invalid Request Exception", e);
             try {
                 sendBadRequestResponse(client, null, "Can't understand request", e.getMessage());
             } catch (final IOException e1) {
-                LOGGER.error("Failed to send BAD_REQUEST: " + e.toString());
+                LOGGER.error("Failed to send BAD_REQUEST: " + e1.toString());
+                // exiting anyway
+            }
+        } catch (final RuntimeException e) { // NOCS: IllegalCatch
+            LOGGER.error("Internal Server Error", e);
+            try {
+                send500Response(client, null, e);
+            } catch (final IOException e1) {
+                LOGGER.error("Failed to send INTERNAL SERVER ERROR: " + e1.toString());
                 // exiting anyway
             }
         } finally {
@@ -263,7 +280,6 @@ public class HttpServerchen implements Closeable {
             } catch (final IOException e) {
                 LOGGER.debug("Socket close failed: " + e.toString());
             }
-
         }
     }
 
@@ -419,6 +435,7 @@ public class HttpServerchen implements Closeable {
                 if (typeInfo[1] != null) {
                     headers.put(HDR_CONTENT_ENCODING, typeInfo[1]);
                 }
+                headers.put("ETag", calculateEtag(resource));
 
                 sendResponse(client, request, HttpStatus.OK, headers, in);
             } else {
@@ -426,7 +443,30 @@ public class HttpServerchen implements Closeable {
                 send404Response(client, request);
             }
         }
+    }
 
+    private String calculateEtag(final String... parts) {
+        try {
+            final MessageDigest md5 = MessageDigest.getInstance("MD5");
+            md5.update(mStartTimeFormatted.getBytes());
+            for (final String str : parts) {
+                md5.update(str.getBytes());
+            }
+            final byte[] digest = md5.digest();
+
+            final StringBuilder sb = new StringBuilder(2 * digest.length);
+            final char[] hexChr = new char[] { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D',
+                    'E', 'F' };
+            for (final byte b : digest) {
+                // CSOFF: MagicNumber
+                sb.append(hexChr[(b & 0xF0) >> 4]);
+                sb.append(hexChr[(b & 0x0F)]);
+                // CSON: MagicNumber
+            }
+            return sb.toString();
+        } catch (final NoSuchAlgorithmException e) {
+            throw new IllegalStateException(e);
+        }
     }
 
     private boolean accessProtectedFile(final String fn) {
@@ -452,6 +492,16 @@ public class HttpServerchen implements Closeable {
     private void send404Response(final Socket client, final HttpRequest request) throws IOException {
         sendHtmlResponse(client, request, HttpStatus.NOT_FOUND, Collections.emptyMap(),
                 String.format(HTTP404_FMT, request.getUrl()));
+    }
+
+    private void send500Response(final Socket client, final HttpRequest request, final Throwable thr)
+            throws IOException {
+        try (StringWriter sw = new StringWriter(); PrintWriter pw = new PrintWriter(sw)) {
+            thr.printStackTrace(pw);
+
+            sendHtmlResponse(client, request, HttpStatus.INTERNAL_SERVER_ERROR, Collections.emptyMap(),
+                    String.format(HTTP500_FMT, sw.toString()));
+        }
     }
 
     private void sendHtmlResponse(final Socket client, final HttpRequest request, final HttpStatus status,
@@ -485,7 +535,8 @@ public class HttpServerchen implements Closeable {
                 respHeaders.putIfAbsent(HDR_CONNECTION, "close");
             }
             // Disable caching
-            respHeaders.putIfAbsent("Cache-Control", "no-cache, no-store, must-revalidate");
+            // respHeaders.putIfAbsent("Cache-Control", "no-cache, no-store,
+            // must-revalidate");
             respHeaders.put("Date", DATE_FORMATTER.format(OffsetDateTime.now()));
 
             respHeaders.put("Last-Modified", mStartTimeFormatted);

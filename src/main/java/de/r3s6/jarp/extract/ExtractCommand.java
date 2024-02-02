@@ -80,11 +80,9 @@ public final class ExtractCommand {
                 }
             }
 
-            if (!mTargetDir.isDirectory()) {
-                if (!mTargetDir.mkdir()) {
-                    System.err.println("ERROR: Can't create target dir: " + mTargetDir);
-                    System.exit(1);
-                }
+            if (!mTargetDir.isDirectory() && !mTargetDir.mkdir()) {
+                System.err.println("ERROR: Can't create target dir: " + mTargetDir);
+                System.exit(1);
             }
 
             final String preziPrefix = JarPresenter.PRESENTATION_DIR + "/";
