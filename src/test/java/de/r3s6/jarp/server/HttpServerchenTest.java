@@ -126,6 +126,40 @@ class HttpServerchenTest {
     }
 
     @Test
+    void testEtagNotModified() throws IOException, InterruptedException {
+        final URL url = new URL(sBaseUrl, "index.html");
+
+        Response response = HttpTestUtils.doGet(url);
+        assertEquals(200, response.getResponseCode());
+        assertNotNull(response.getHeader("ETag"));
+        final String etag = response.getHeader("ETag");
+
+        response = HttpTestUtils.doGet(url, Collections.singletonMap("If-None-Match", etag));
+        assertEquals(304, response.getResponseCode());
+        assertNotNull(response.getHeader("ETag"));
+        final String newEtag = response.getHeader("ETag");
+        assertEquals(etag, newEtag);
+    }
+
+    @Test
+    void testEtagModified() throws IOException, InterruptedException {
+        final URL url = new URL(sBaseUrl, "index.html");
+
+        Response response = HttpTestUtils.doGet(url);
+        assertEquals(200, response.getResponseCode());
+        assertNotNull(response.getHeader("ETag"));
+        final String etag = response.getHeader("ETag");
+
+        // Sending other ETag value, expecting 200
+        response = HttpTestUtils.doGet(url, Collections.singletonMap("If-None-Match", "Wrong-ETag"));
+        assertEquals(200, response.getResponseCode());
+        assertNotNull(response.getHeader("ETag"));
+        final String newEtag = response.getHeader("ETag");
+
+        assertEquals(etag, newEtag);
+    }
+
+    @Test
     void testNotFound() throws IOException, InterruptedException {
         final URL url = new URL(sBaseUrl, "unknown-file");
         final Response response = HttpTestUtils.doGet(url);

@@ -10,6 +10,7 @@ import java.net.URL;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import org.opentest4j.AssertionFailedError;
 
@@ -40,6 +41,9 @@ class HttpTestUtils {
 
         con.setRequestMethod(method);
         con.setUseCaches(false);
+        for (final Entry<String, String> hdrEntry : requestHeader.entrySet()) {
+            con.setRequestProperty(hdrEntry.getKey(), hdrEntry.getValue());
+        }
 
         final int respCode = con.getResponseCode();
         final InputStream in;

@@ -15,6 +15,8 @@ public enum HttpStatus {
 
     /** 200 - OK. */
     OK(200, "OK"),
+    /** 304 - Not Modified. */
+    NOT_MODIFIED(304, "Not Modified"),
     /** 400 - Bad Request. */
     BAD_REQUEST(400, "Bad Request"),
     /** 404 - Not Found. */

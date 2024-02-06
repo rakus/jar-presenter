@@ -58,6 +58,11 @@ public class HttpServerchen implements Closeable {
 
     private static final Logger LOGGER = Logger.instance();
 
+    private static final char[] HEX_CHARS = new char[] {
+            '0', '1', '2', '3', '4', '5', '6', '7',
+            '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'
+    };
+
     // HTTP date format according to RFC 7231 (7.1.1.1)
     private static final String HTTP_DATE_FMT = "EEE, dd MMM yyyy HH:mm:ss z";
 
@@ -73,6 +78,10 @@ public class HttpServerchen implements Closeable {
     private static final String HDR_CONTENT_TYPE = "Content-Type";
 
     private static final String HDR_CONNECTION = "Connection";
+
+    private static final String HDR_ETAG = "ETag";
+
+    private static final String HDR_IF_NONE_MATCH = "If-None-Match";
 
     private static final String HTTP404_FMT = "<html><head><meta charset=\"utf-8\"><title>Not Found</title></head>"
             + "<body><p>The requested resource could not be found.</p>"
@@ -106,6 +115,13 @@ public class HttpServerchen implements Closeable {
     private final OffsetDateTime mStartTime;
     private final String mStartTimeFormatted;
 
+    /**
+     * Initial bytes to calculate the ETag value. This are unique per started server
+     * instance. The same resource will have different ETags in every started
+     * server.
+     */
+    private final byte[] mEtagInitBytes;
+
     private boolean mShutdown;
 
     /**
@@ -127,6 +143,7 @@ public class HttpServerchen implements Closeable {
 
         mStartTime = OffsetDateTime.now();
         mStartTimeFormatted = DATE_FORMATTER.format(mStartTime);
+        mEtagInitBytes = (mStartTimeFormatted + "-" + port).getBytes();
     }
 
     /**
@@ -426,51 +443,64 @@ public class HttpServerchen implements Closeable {
         final String resource = mRootDir + mFileMap.getOrDefault(fn, fn);
         LOGGER.debug("Serving: " + request.getPath() + " -> " + resource);
 
-        try (InputStream in = mClassLoader.getResourceAsStream(resource)) {
+        final String etag = calculateEtag(resource);
+        if (etag != null && etag.equals(request.getHeader(HDR_IF_NONE_MATCH))) {
+            sendNotModifiedResponse(client, request, Collections.singletonMap(HDR_ETAG, etag));
+        } else {
 
-            if (in != null) {
-                final Map<String, String> headers = new HashMap<>();
-                final String[] typeInfo = ContentTypes.instance().guess(resource);
-                headers.put(HDR_CONTENT_TYPE, typeInfo[0]);
-                if (typeInfo[1] != null) {
-                    headers.put(HDR_CONTENT_ENCODING, typeInfo[1]);
+            try (InputStream in = mClassLoader.getResourceAsStream(resource)) {
+
+                if (in != null) {
+                    final Map<String, String> headers = new HashMap<>();
+                    final String[] typeInfo = ContentTypes.instance().guess(resource);
+                    headers.put(HDR_CONTENT_TYPE, typeInfo[0]);
+                    if (typeInfo[1] != null) {
+                        headers.put(HDR_CONTENT_ENCODING, typeInfo[1]);
+                    }
+                    if (etag != null) {
+                        headers.put(HDR_ETAG, etag);
+                    }
+
+                    sendResponse(client, request, HttpStatus.OK, headers, in);
+                } else {
+                    // 404
+                    send404Response(client, request);
                 }
-                headers.put("ETag", calculateEtag(resource));
-
-                sendResponse(client, request, HttpStatus.OK, headers, in);
-            } else {
-                // 404
-                send404Response(client, request);
             }
         }
+    }
+
+    private boolean accessProtectedFile(final String fn) {
+        return fn.endsWith("jarp-filemap.properties");
     }
 
     private String calculateEtag(final String... parts) {
         try {
             final MessageDigest md5 = MessageDigest.getInstance("MD5");
-            md5.update(mStartTimeFormatted.getBytes());
+            md5.update(mEtagInitBytes);
             for (final String str : parts) {
                 md5.update(str.getBytes());
             }
             final byte[] digest = md5.digest();
 
             final StringBuilder sb = new StringBuilder(2 * digest.length);
-            final char[] hexChr = new char[] { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D',
-                    'E', 'F' };
             for (final byte b : digest) {
                 // CSOFF: MagicNumber
-                sb.append(hexChr[(b & 0xF0) >> 4]);
-                sb.append(hexChr[(b & 0x0F)]);
+                sb.append(HEX_CHARS[(b & 0xF0) >> 4]);
+                sb.append(HEX_CHARS[(b & 0x0F)]);
                 // CSON: MagicNumber
             }
             return sb.toString();
         } catch (final NoSuchAlgorithmException e) {
-            throw new IllegalStateException(e);
+            LOGGER.debug("MD5 algorithm not supported, no ETag header");
+            return null;
         }
     }
 
-    private boolean accessProtectedFile(final String fn) {
-        return fn.endsWith("jarp-filemap.properties");
+    private void sendNotModifiedResponse(final Socket client, final HttpRequest request,
+            final Map<String, String> headers)
+            throws IOException {
+        sendResponse(client, request, HttpStatus.NOT_MODIFIED, headers, null);
     }
 
     private void sendMethodNotImplementedResponse(final Socket client, final HttpRequest request) throws IOException {
@@ -534,9 +564,6 @@ public class HttpServerchen implements Closeable {
             } else {
                 respHeaders.putIfAbsent(HDR_CONNECTION, "close");
             }
-            // Disable caching
-            // respHeaders.putIfAbsent("Cache-Control", "no-cache, no-store,
-            // must-revalidate");
             respHeaders.put("Date", DATE_FORMATTER.format(OffsetDateTime.now()));
 
             respHeaders.put("Last-Modified", mStartTimeFormatted);
