@@ -25,6 +25,7 @@ public final class BuildCommand {
 
     private String mTargetJarName;
     private String mSrcDir;
+    private String mTitle;
     private String mIndexFile;
     /** Whether to overwrite an existing jar. */
     private boolean mForce;
@@ -49,10 +50,12 @@ public final class BuildCommand {
         System.out.println("build - build a NEW presentation jar for given presentation");
         System.out.println(
                 "      USAGE: java -jar jar-presenter.jar build [-f] [-i <start-page>] <new-jar-name> <presentation-dir>");
-        System.out.println("        -f       overwrite existing jar");
         System.out.println("        -i <start-page>");
         System.out.println("                 defines the start page of the presentation to be used instead");
         System.out.println("                 of index.html");
+        System.out.println("        -t <text>");
+        System.out.println("                 title of presentation. Used e.g. in server popup.");
+        System.out.println("        -f       overwrite existing jar");
         System.out.println("        new-jar-name");
         System.out.println("                 name of the new jar to create");
         System.out.println("        presentation-dir");
@@ -67,7 +70,7 @@ public final class BuildCommand {
     public void execute(final List<String> argList) {
         handleArgs(argList);
         try {
-            new JarpBuilder().build(mTargetJarName, mSrcDir, mIndexFile, mForce);
+            new JarpBuilder().build(mTargetJarName, mSrcDir, mTitle, mIndexFile, mForce);
         } catch (final IOException | IllegalArgumentException e) {
             System.err.println("ERROR: Creating jar failed: " + e);
             System.exit(1);
@@ -84,6 +87,7 @@ public final class BuildCommand {
         try {
             final ArgsParser ah = new ArgsParser(BuildCommand::showHelp);
 
+            final ValueOption titleOpt = ah.addValueOption('t');
             final ValueOption idxOpt = ah.addValueOption('i');
             final Flag forceOpt = ah.addFlag('f');
             final Argument jarOpt = ah.addRequiredArgument("new-jar-name");
@@ -91,6 +95,7 @@ public final class BuildCommand {
 
             ah.parse(argList);
 
+            mTitle = titleOpt.getValue();
             mIndexFile = idxOpt.getValue();
             mTargetJarName = jarOpt.getValue();
             mSrcDir = dirOpt.getValue();

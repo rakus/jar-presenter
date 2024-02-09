@@ -38,7 +38,13 @@ public final class Utilities {
             throws IOException {
         try (InputStream in = classLoader.getResourceAsStream(resourceName)) {
             if (in != null) {
-                return readPropertyMap(in);
+                final Properties props = new Properties();
+                props.load(in);
+                final Map<String, String> map = new HashMap<>();
+                for (final Map.Entry<Object, Object> entry : props.entrySet()) {
+                    map.put(String.valueOf(entry.getKey()), String.valueOf(entry.getValue()));
+                }
+                return map;
             } else {
                 return Collections.emptyMap();
             }
@@ -56,25 +62,5 @@ public final class Utilities {
      */
     public static Map<String, String> readPropertyMapResource(final String resourceName) throws IOException {
         return readPropertyMapResource(resourceName, Utilities.class.getClassLoader());
-    }
-
-    /**
-     * Loads a properties Map from the given InputStream.
-     *
-     * The stream has to be closed externally.
-     *
-     * @param in InputSTream to read from
-     * @return A Map with the properties
-     * @throws IOException          if reading fails
-     * @throws NullPointerException if the given stream is {@code null}
-     */
-    public static Map<String, String> readPropertyMap(final InputStream in) throws IOException {
-        final Properties props = new Properties();
-        props.load(in);
-        final Map<String, String> map = new HashMap<>();
-        for (final Map.Entry<Object, Object> entry : props.entrySet()) {
-            map.put(String.valueOf(entry.getKey()), String.valueOf(entry.getValue()));
-        }
-        return map;
     }
 }

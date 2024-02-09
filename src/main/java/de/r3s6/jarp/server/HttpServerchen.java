@@ -106,11 +106,7 @@ public class HttpServerchen implements Closeable {
 
     private final String mRootDir;
 
-    /**
-     * Used to map file names to actual resource name. Most important use case is
-     * when the root HTML document is _NOT_ named index.html.
-     */
-    private final Map<String, String> mFileMap;
+    private final String mStartPage;
 
     private final OffsetDateTime mStartTime;
     private final String mStartTimeFormatted;
@@ -130,7 +126,7 @@ public class HttpServerchen implements Closeable {
      * @param port        the port to open. 0 means to choose a random port.
      * @param rootDir     the root dir of the resources to serve.
      * @param classLoader the classLoader to load resources
-     * @throws IOException if reading the filemap files produces it.
+     * @throws IOException if reading the metadata files produces it.
      */
     public HttpServerchen(final int port, final String rootDir, final ClassLoader classLoader) throws IOException {
 
@@ -139,7 +135,15 @@ public class HttpServerchen implements Closeable {
         // backlog = 0 -> "an implementation specific default will be used"
         mServerSocket = new ServerSocket(port, 0, InetAddress.getByName("localhost"));
         mRootDir = rootDir;
-        mFileMap = Utilities.readPropertyMapResource(mRootDir + "/" + JarPresenter.FILEMAP_BASENAME, mClassLoader);
+
+        final String metadataFile = rootDir + '/' + JarPresenter.METADATA_BASENAME;
+
+        final Map<String, String> metadata = Utilities.readPropertyMapResource(metadataFile, classLoader);
+        if (metadata.containsKey(JarPresenter.PROP_STARTPAGE)) {
+            mStartPage = metadata.get(JarPresenter.PROP_STARTPAGE);
+        } else {
+            mStartPage = "/index.html";
+        }
 
         mStartTime = OffsetDateTime.now();
         mStartTimeFormatted = DATE_FORMATTER.format(mStartTime);
@@ -151,7 +155,7 @@ public class HttpServerchen implements Closeable {
      *
      * @param port    the port to open. 0 means to choose a random port.
      * @param rootDir the root dir of the resources to serve.
-     * @throws IOException if reading the filemap files produces it.
+     * @throws IOException if reading the metadata files produces it.
      */
     public HttpServerchen(final int port, final String rootDir) throws IOException {
         this(port, rootDir, HttpServerchen.class.getClassLoader());
@@ -162,7 +166,7 @@ public class HttpServerchen implements Closeable {
      * Constructs a HttpServerchen.
      *
      * @param port the port to open. 0 means to choose a random port.
-     * @throws IOException if reading the filemap files produces it.
+     * @throws IOException if reading the metadata files produces it.
      */
     public HttpServerchen(final int port) throws IOException {
         this(port, JarPresenter.PRESENTATION_DIR);
@@ -434,13 +438,13 @@ public class HttpServerchen implements Closeable {
 
     private void handleRequest(final Socket client, final HttpRequest request) throws IOException {
 
-        final String fn = "/".equals(request.getPath()) ? "/index.html" : request.getPath();
+        final String fn = "/".equals(request.getPath()) ? mStartPage : request.getPath();
         if (accessProtectedFile(fn)) {
             send404Response(client, request);
             return;
         }
 
-        final String resource = mRootDir + mFileMap.getOrDefault(fn, fn);
+        final String resource = mRootDir + fn;
         LOGGER.debug("Serving: " + request.getPath() + " -> " + resource);
 
         final String etag = calculateEtag(resource);
@@ -471,7 +475,7 @@ public class HttpServerchen implements Closeable {
     }
 
     private boolean accessProtectedFile(final String fn) {
-        return fn.endsWith("jarp-filemap.properties");
+        return fn.endsWith("jarp-metadata.properties");
     }
 
     private String calculateEtag(final String... parts) {

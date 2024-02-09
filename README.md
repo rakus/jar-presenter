@@ -82,19 +82,19 @@ The presentation could be any static content that is deliverable from web
 server, but it **needs** a start page.
 
 By default the start page is called `index.html`. If the start page has a
-different name, a file called `jarp-filemap.properties` can be created to map
-`index.html` to another file.
+different name, a file called `jarp-metadata.properties` can be created to
+define the start page with the entry `start-page`.
 
-Assuming the start page should be `Cool-Presentation.html`, the
-file `jarp-filemap.properties` needs following content (don't forget leading
-`/`!):
+If the start page should be `Presentation.html` and the title of the
+presentation is "My Presentation", `jarp-metadata.properties` contains:
 
 ```
-/index.html=/Cool-Presentation.html
+title=My Presentation
+start-page=/Cool-Presentation.html
 ```
 
-When using the `build` sub-command the option `-i` triggers the generation of
-this file.
+When using the sub command `build`, the values of the options `-i` and `-t`
+are used to create this file.
 
 ### Content Types
 

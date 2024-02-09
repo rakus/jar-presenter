@@ -14,6 +14,7 @@ import java.io.IOException;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import javax.swing.Icon;
 import javax.swing.JButton;
@@ -25,6 +26,8 @@ import javax.swing.UIManager;
 import javax.swing.WindowConstants;
 import javax.swing.event.HyperlinkEvent;
 
+import de.r3s6.jarp.JarPresenter;
+import de.r3s6.jarp.Utilities;
 import de.r3s6.jarp.args.ArgsParser;
 import de.r3s6.jarp.args.ArgsParser.CmdLineArgException;
 import de.r3s6.jarp.args.ArgsParser.Counter;
@@ -80,6 +83,8 @@ public final class ServerCommand {
         handleArgs(argList);
         Logger.instance().verbosity(mVerbosity);
 
+        final String presentationTitle = getPresentationTitle();
+
         try (HttpServerchen srv = new HttpServerchen(mServerPort)) {
             final int port = srv.getPort();
             final Runnable r = () -> {
@@ -96,13 +101,16 @@ public final class ServerCommand {
             final URI uri = URI.create("http://localhost:" + port);
 
             if (mUseTerminal) {
-                final String message = "Serving on " + uri
+                String message = "Serving on " + uri
                         + "\n\nPoint your browser to that address to see the presentation";
+                if (presentationTitle != null) {
+                    message = "Presentation: " + presentationTitle + "\n\n" + message;
+                }
                 System.out.println();
                 System.out.println(message);
                 System.out.println();
             } else {
-                EventQueue.invokeLater(() -> showGuiDialog(uri));
+                EventQueue.invokeLater(() -> showGuiDialog(uri, presentationTitle));
             }
 
             if (mStartBrowser) {
@@ -118,6 +126,18 @@ public final class ServerCommand {
             reportError("HttpServerchen interrupted: " + e.toString());
         }
         System.exit(0);
+    }
+
+    private String getPresentationTitle() {
+        try {
+            final Map<String, String> metadata = Utilities.readPropertyMapResource(JarPresenter.METADATA_PATH);
+            if (metadata.containsKey(JarPresenter.PROP_TITLE)) {
+                return metadata.get(JarPresenter.PROP_TITLE);
+            }
+        } catch (final IOException e) {
+            System.err.println("Error loading metadata ignored: " + e.getMessage());
+        }
+        return null;
     }
 
     /**
@@ -195,10 +215,16 @@ public final class ServerCommand {
 
     }
 
-    private void showGuiDialog(final URI uri) {
+    private void showGuiDialog(final URI uri, final String presentationTitle) {
+
+        String title = "";
+        if (presentationTitle != null) {
+            // TODO: HTML-escape the title string
+            title = "<b>" + presentationTitle + "</b><hr/>";
+        }
 
         final JEditorPane msgPane = new JEditorPane("text/html",
-                "<html><body>" + "<p>Serving on <a href=\"" + uri + "\">" + uri + "</a></p>"
+                "<html><body>" + title + "<p>Serving on <a href=\"" + uri + "\">" + uri + "</a></p>"
                         + "<p>Point your browser to that address to see the presentation.</p>"
                         + "<p>Close this dialog to stop the server.</p>" + "</body></html>");
         msgPane.setEditable(false);

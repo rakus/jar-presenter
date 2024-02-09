@@ -24,15 +24,26 @@ public final class JarPresenter {
 
     /** Resource folder of the presentation. */
     public static final String PRESENTATION_DIR = "presentation";
+
     /**
-     * Name of the file that helps mapping request file names to actual file names.
-     * Main use: Using a different file than index.html as start page.
+     * Name of the file that contains the presentation metadata.
      */
-    public static final String FILEMAP_BASENAME = "jarp-filemap.properties";
+    public static final String METADATA_BASENAME = "jarp-metadata.properties";
+
     /**
-     * Full path to file map file. See {@link #FILEMAP_BASENAME}.
+     * Full path to metadata file. See {@link #METADATA_BASENAME}.
      */
-    public static final String FILEMAP_PATH = PRESENTATION_DIR + "/" + FILEMAP_BASENAME;
+    public static final String METADATA_PATH = JarPresenter.PRESENTATION_DIR + "/" + METADATA_BASENAME;
+
+    /**
+     * Property in jarp-metadata.properties for the presentation title.
+     */
+    public static final String PROP_TITLE = "title";
+
+    /**
+     * Property in jarp-metadata.properties for the start page.
+     */
+    public static final String PROP_STARTPAGE = "start-page";
 
     private JarPresenter() {
     }

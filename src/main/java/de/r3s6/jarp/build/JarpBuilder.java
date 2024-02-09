@@ -23,10 +23,7 @@ import java.nio.file.Paths;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.time.OffsetDateTime;
-import java.util.Collections;
 import java.util.Enumeration;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Properties;
 import java.util.jar.Attributes;
 import java.util.jar.Attributes.Name;
@@ -50,14 +47,15 @@ public class JarpBuilder {
      *
      * @param targetJar       the new jar to create.
      * @param presentationDir directory with presentation to include in the jar
+     * @param title           title of the presentation
      * @param initialHtml     name of the initial page to open (instead of
      *                        index.html)
      * @param force           overwrite a existing jar
      * @throws IOException              on IO problems
      * @throws IllegalArgumentException if expected files don't exist
      */
-    public void build(final String targetJar, final String presentationDir, final String initialHtml,
-            final boolean force)
+    public void build(final String targetJar, final String presentationDir, final String title,
+            final String initialHtml, final boolean force)
             throws IOException {
 
         final File targetFile = new File(targetJar);
@@ -73,7 +71,7 @@ public class JarpBuilder {
             throw new IllegalArgumentException("Target JAR and presentation locations overlap.");
         }
 
-        verifyIndexHtml(presentationDir, initialHtml);
+        final Properties metadata = createMetaData(presentationDir, title, initialHtml);
 
         final Manifest manifest = createManifest();
 
@@ -85,14 +83,12 @@ public class JarpBuilder {
             // copy presentation
             copyPresentation(jar, presentationDir, JarPresenter.PRESENTATION_DIR);
 
-            if (initialHtml != null) {
-                final JarEntry tgtEntry = new JarEntry(JarPresenter.FILEMAP_PATH);
-                jar.putNextEntry(tgtEntry);
-                final PrintWriter prt = new PrintWriter(jar);
-                prt.println("/index.html=/" + initialHtml);
-                prt.flush();
-                jar.closeEntry();
-            }
+            final JarEntry tgtEntry = new JarEntry(JarPresenter.METADATA_PATH);
+            jar.putNextEntry(tgtEntry);
+            final PrintWriter prt = new PrintWriter(jar);
+            metadata.store(prt, null);
+            prt.flush();
+            jar.closeEntry();
 
             System.out.println("New Jar created: " + targetFile);
 
@@ -120,42 +116,44 @@ public class JarpBuilder {
         return mf;
     }
 
-    private void verifyIndexHtml(final String presentationDir, final String initialHtml) throws IOException {
+    private Properties createMetaData(final String presentationDir, final String title, final String initialHtml)
+            throws IOException {
 
-        final Path filemapFile = Paths.get(presentationDir, JarPresenter.FILEMAP_BASENAME);
-        Path startPage = Paths.get(presentationDir, "index.html");
+        final Path metadataFile = Paths.get(presentationDir, JarPresenter.METADATA_BASENAME);
 
-        // if initialHtml is set, check if it exists
-        if (initialHtml != null) {
-            final Path iniHtml = Paths.get(presentationDir, initialHtml);
-            if (Files.exists(filemapFile)) {
-                throw new IllegalArgumentException(
-                        "Filemap file exists and initial HTML given. That doesn't make sense.");
-            }
-            startPage = iniHtml;
+        final Properties props;
+        if (Files.exists(metadataFile)) {
+            props = loadMetadataProps(metadataFile);
+            System.out.println("Metadata file found: " + props);
         } else {
-            if (Files.exists(filemapFile)) {
-                final Map<String, String> filemap = readFilemap(filemapFile.toFile());
-                if (filemap.containsKey("/index.html")) {
-                    startPage = Path.of(presentationDir, filemap.get("/index.html").substring(1));
-                }
-            }
+            props = new Properties();
         }
+
+        if (title != null) {
+            props.setProperty(JarPresenter.PROP_TITLE, title);
+        }
+        if (initialHtml != null) {
+            props.setProperty(JarPresenter.PROP_STARTPAGE, initialHtml);
+        } else if (!props.containsKey(JarPresenter.PROP_STARTPAGE)) {
+            props.setProperty(JarPresenter.PROP_STARTPAGE, "/index.html");
+        }
+
+        final Path startPage = Paths.get(presentationDir, props.getProperty(JarPresenter.PROP_STARTPAGE));
 
         if (!Files.exists(startPage)) {
             throw new FileNotFoundException(startPage.toString());
         }
+
+        System.out.println("Metadata: " + props);
+
+        return props;
     }
 
-    private Map<String, String> readFilemap(final File filemapFile) throws IOException {
-        try (InputStream in = new FileInputStream(filemapFile)) {
+    private Properties loadMetadataProps(final Path metadataFile) throws IOException {
+        try (InputStream in = new FileInputStream(metadataFile.toFile())) {
             final Properties props = new Properties();
             props.load(in);
-            final Map<String, String> map = new HashMap<>();
-            for (final Map.Entry<Object, Object> entry : props.entrySet()) {
-                map.put(String.valueOf(entry.getKey()), String.valueOf(entry.getValue()));
-            }
-            return Collections.unmodifiableMap(map);
+            return props;
         }
     }
 
@@ -170,7 +168,7 @@ public class JarpBuilder {
                 final Enumeration<JarEntry> enumEntries = jarpJar.entries();
                 while (enumEntries.hasMoreElements()) {
                     final JarEntry jarEntry = enumEntries.nextElement();
-                    if (isJarpCode(jarEntry.getName())) {
+                    if (jarEntry.getName().startsWith("de/r3s6/jarp")) {
                         if (jarEntry.isDirectory()) {
                             // no /-suffix needed, as it is already there
                             final JarEntry tgtEntry = new JarEntry(jarEntry.getName());
@@ -192,10 +190,6 @@ public class JarpBuilder {
             // I think that this should never happen.
             throw new RuntimeException("Unexpected exception: " + e, e);
         }
-    }
-
-    private boolean isJarpCode(final String entryName) {
-        return entryName.startsWith("de/r3s6/jarp") && !entryName.startsWith("de/r3s6/jarp/maven");
     }
 
     private void copyPresentation(final JarOutputStream jar, final String sourceDir, final String root)
@@ -240,19 +234,21 @@ public class JarpBuilder {
         public FileVisitResult visitFile(final Path file, final BasicFileAttributes attrs) throws IOException {
             final Path jarEntryPath = mSearchRoot.relativize(file);
 
-            final JarEntry entry = new JarEntry(mSubdir + '/' + jarEntryPath);
-            mJar.putNextEntry(entry);
-            try (BufferedInputStream in = new BufferedInputStream(new FileInputStream(file.toFile()))) {
-                final byte[] buffer = new byte[1024 * 1024]; // NOCS: MagicNumber
-                while (true) {
-                    final int count = in.read(buffer);
-                    if (count == -1) {
-                        break;
+            if (!JarPresenter.METADATA_BASENAME.equals(jarEntryPath.toString())) {
+                final JarEntry entry = new JarEntry(mSubdir + '/' + jarEntryPath);
+                mJar.putNextEntry(entry);
+                try (BufferedInputStream in = new BufferedInputStream(new FileInputStream(file.toFile()))) {
+                    final byte[] buffer = new byte[1024 * 1024]; // NOCS: MagicNumber
+                    while (true) {
+                        final int count = in.read(buffer);
+                        if (count == -1) {
+                            break;
+                        }
+                        mJar.write(buffer, 0, count);
                     }
-                    mJar.write(buffer, 0, count);
+                } finally {
+                    mJar.closeEntry();
                 }
-            } finally {
-                mJar.closeEntry();
             }
 
             return FileVisitResult.CONTINUE;

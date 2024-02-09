@@ -39,7 +39,7 @@ class HttpServerchenTest {
         // set to higher value while debugging
         Logger.instance().verbosity(0);
         try {
-            sHttpd = new HttpServerchen(0, DATA_DIR);
+            sHttpd = new HttpServerchen(0, DATA_DIR, HttpServerchenTest.class.getClassLoader());
             sPort = sHttpd.getPort();
             sBaseUrl = new URL("http://localhost:" + sPort);
 
@@ -100,13 +100,6 @@ class HttpServerchenTest {
         assertEquals(400, response.getResponseCode());
         assertTrue(response.getBodyAsString().contains("Invalid request path"),
                 "Expected text 'Invalid request path' not found in body");
-    }
-
-    @Test
-    void testMapped() throws IOException, InterruptedException {
-        final Response response = HttpTestUtils.doGet(new URL(sBaseUrl, "mapped"));
-        assertEquals(200, response.getResponseCode());
-        assertEquals("Map-Target", response.getBodyAsString());
     }
 
     @ParameterizedTest
@@ -170,7 +163,7 @@ class HttpServerchenTest {
 
     @Test
     void testHeadRequest() throws IOException, InterruptedException {
-        final URL url = new URL(sBaseUrl, "mapped");
+        final URL url = new URL(sBaseUrl, "map-target.txt");
         final Response response = HttpTestUtils.doGet(url, Collections.emptyMap());
         assertEquals(200, response.getResponseCode());
 
@@ -262,7 +255,7 @@ class HttpServerchenTest {
             assertEquals(501, respCode);
 
             // Add another request
-            final Response response = HttpTestUtils.doGet(new URL(sBaseUrl, "mapped"),
+            final Response response = HttpTestUtils.doGet(new URL(sBaseUrl, "map-target.txt"),
                     Collections.emptyMap());
             assertEquals(200, response.getResponseCode());
             assertEquals("Map-Target", response.getBodyAsString());
