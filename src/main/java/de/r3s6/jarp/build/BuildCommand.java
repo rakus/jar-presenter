@@ -96,17 +96,31 @@ public final class BuildCommand {
             ah.parse(argList);
 
             mTitle = titleOpt.getValue();
-            mIndexFile = idxOpt.getValue();
+            mIndexFile = cleanIndexName(idxOpt.getValue());
             mTargetJarName = jarOpt.getValue();
             mSrcDir = dirOpt.getValue();
             mForce = forceOpt.getValue();
+
+            if (mIndexFile != null && mIndexFile.indexOf('/', 1) >= 0) {
+                System.err.println("ERROR: index file must be in presentation root directory.");
+                System.exit(1);
+            }
 
         } catch (final CmdLineArgException e) {
             System.err.println(e.getMessage());
             showHelp();
             System.exit(1);
         }
+    }
 
+    private String cleanIndexName(final String value) {
+        if (value == null) {
+            return null;
+        }
+        String fn = "/" + value.replace('\\', '/');
+        fn = fn.replaceAll("//+", "/");
+
+        return fn;
     }
 
 }
