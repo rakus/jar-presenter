@@ -53,7 +53,7 @@ public class HttpResponseMessage implements Closeable, Flushable {
         }
     }
 
-    private static final byte[] NL = utf8Bytes("\r\n");
+    private static final byte[] CRLF = utf8Bytes("\r\n");
 
     private final OutputStream mDelegate;
 
@@ -119,6 +119,15 @@ public class HttpResponseMessage implements Closeable, Flushable {
 
     /**
      * Writes the response body with chunked transfer if needed.
+     * <p>
+     * Current state must be {@link State#HEADER}, as first the header
+     * "Content-Length" or "Transfer-Encoding: chunked" is written.
+     * <p>
+     * After this call the state is {@link State#BODY} and the next call must be
+     * {@link #close()}.
+     * <p>
+     * If the request method is "HEAD", only the header is written, but the body is
+     * skipped.
      *
      * @param in stream to read the body
      * @throws IOException when reading the body or writing the response fails
@@ -163,6 +172,15 @@ public class HttpResponseMessage implements Closeable, Flushable {
 
     /**
      * Write body from simple byte array.
+     * <p>
+     * Current state must be {@link State#HEADER}, as first the header
+     * "Content-Length" is written.
+     * <p>
+     * After this call the state is {@link State#BODY} and the next call must be
+     * {@link #close()}.
+     * <p>
+     * If the request method is "HEAD", only the header is written, but the body is
+     * skipped.
      *
      * @param buffer body as byte array.
      * @throws IOException when writing the response fails
@@ -223,12 +241,12 @@ public class HttpResponseMessage implements Closeable, Flushable {
     private void println(final String str) throws IOException {
         LOGGER.logResponseLine(str);
         write(utf8Bytes(str));
-        write(NL);
+        write(CRLF);
     }
 
     /** Insert a HTTP line break (CR-LF). */
     private void println() throws IOException {
-        write(NL);
+        write(CRLF);
     }
 
     private void write(final byte[] bytes, final int offset, final int length) throws IOException {
