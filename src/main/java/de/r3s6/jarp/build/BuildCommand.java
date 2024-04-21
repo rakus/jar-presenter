@@ -48,12 +48,12 @@ public final class BuildCommand {
     public static void showHelp() {
 
         System.out.println("build - build a NEW presentation jar for given presentation");
-        System.out.println(
-                "      USAGE: java -jar jar-presenter.jar build [-f] [-i <start-page>] <new-jar-name> <presentation-dir>");
+        System.out.println("      USAGE: java -jar jar-presenter.jar build [-f] [-i <start-page>] [-t <title>] "
+                + "<new-jar-name> <presentation-dir>");
         System.out.println("        -i <start-page>");
         System.out.println("                 defines the start page of the presentation to be used instead");
         System.out.println("                 of index.html");
-        System.out.println("        -t <text>");
+        System.out.println("        -t <title>");
         System.out.println("                 title of presentation. Used e.g. in server popup.");
         System.out.println("        -f       overwrite existing jar");
         System.out.println("        new-jar-name");

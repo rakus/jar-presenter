@@ -39,10 +39,13 @@ presentation.
 
 *Command Line Usage*
 
-`java -jar jar-presenter-{jarp_version}.jar build [-f] [-i start-page] jar-name presentation-dir`
+`java -jar jar-presenter-{jarp_version}.jar build [-f] [-t title] [-i start-page] jar-name presentation-dir`
 
 `-f`::
 Overwrite a already existing jar file.
+
+`-t title`::
+Title of presentation. Used e.g. in server popup.
 
 `-i start-page`::
 Use the given HTML file as the start page (instead of `index.html`).

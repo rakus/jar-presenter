@@ -17,7 +17,7 @@ HTTP server and serves the presentation included in the jar.
 The minimalistic HTTP server
 * does not implement any security
 * assumes a well behaving client (e.g. a "standard" browser)
-* only accepts request via localhost
+* binds to localhost, hence only accepts request from local machine
 
 ---
 
@@ -64,11 +64,13 @@ them with a presentation on disk into a new jar.
 ```
 $ java -jar jar-presenter-0.1.0-SNAPSHOT.jar build --help
 build - build a NEW presentation jar for given presentation
-      USAGE: java -jar jar-presenter.jar build [-f] [-i <start-page>] <new-jar-name> <presentation-dir>
-        -f       overwrite existing jar
+      USAGE: java -jar jar-presenter.jar build [-f] [-i <start-page>] [-t <title>] <new-jar-name> <presentation-dir>
         -i <start-page>
                  defines the start page of the presentation to be used instead
                  of index.html
+        -t <title>
+                 title of presentation. Used e.g. in server popup.
+        -f       overwrite existing jar
         new-jar-name
                  name of the new jar to create
         presentation-dir
@@ -86,11 +88,12 @@ different name, a file called `jarp-metadata.properties` can be created to
 define the start page with the entry `start-page`.
 
 If the start page should be `Presentation.html` and the title of the
-presentation is "My Presentation", `jarp-metadata.properties` contains:
+presentation is "My Presentation", `jarp-metadata.properties` contains (don't
+forget the leading slash on `start-page`):
 
 ```
 title=My Presentation
-start-page=/Cool-Presentation.html
+start-page=/Presentation.html
 ```
 
 When using the sub command `build`, the values of the options `-i` and `-t`
