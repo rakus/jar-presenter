@@ -11,8 +11,8 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
+import java.util.TreeMap;
 
 /**
  * Represents a simple HTTP request.
@@ -32,8 +32,19 @@ class HttpRequest {
     HttpRequest(final HttpRequest.Builder builder) throws MalformedURLException {
         mMethod = builder.mMethod;
         mVersion = builder.mVersion;
-        mHeaders = Collections.unmodifiableMap(builder.mHeaders);
-        final String url = "http://" + builder.mHost + builder.mPath;
+
+        final Map<String, String> headers = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
+        headers.putAll(builder.mHeaders);
+        mHeaders = Collections.unmodifiableMap(headers);
+
+        final String path;
+        if (builder.mPath != null && !builder.mPath.trim().isEmpty()) {
+            path = builder.mPath;
+        } else {
+            path = "/";
+        }
+
+        final String url = "http://" + builder.mHost + path;
         try {
             final URI uri = new URI(url);
             mUrl = uri.normalize().toURL();
@@ -57,6 +68,11 @@ class HttpRequest {
         return mUrl;
     }
 
+    /**
+     * Get the path part of the url.
+     *
+     * @return path part of url - NEVER null or empty
+     */
     public String getPath() {
         return mUrl.getPath();
     }
@@ -66,7 +82,7 @@ class HttpRequest {
     }
 
     public String getHeader(final String name) {
-        return mHeaders.get(name.toLowerCase());
+        return mHeaders.get(name);
     }
 
     public boolean isKeepAlive() {
@@ -77,7 +93,7 @@ class HttpRequest {
         private String mMethod;
         private String mPath;
         private String mVersion;
-        private Map<String, String> mHeaders = new HashMap<>();
+        private Map<String, String> mHeaders = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
         private String mHost;
 
         HttpRequest.Builder method(final String method) {
@@ -101,7 +117,7 @@ class HttpRequest {
         }
 
         HttpRequest.Builder addHeader(final String name, final String value) {
-            mHeaders.put(name.toLowerCase(), value);
+            mHeaders.put(name, value);
             return this;
         }
 
