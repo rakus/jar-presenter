@@ -88,8 +88,7 @@ different name, a file called `jarp-metadata.properties` can be created to
 define the start page with the entry `start-page`.
 
 If the start page should be `Presentation.html` and the title of the
-presentation is "My Presentation", `jarp-metadata.properties` contains (don't
-forget the leading slash on `start-page`):
+presentation is "My Presentation", `jarp-metadata.properties` contains:
 
 ```
 title=My Presentation

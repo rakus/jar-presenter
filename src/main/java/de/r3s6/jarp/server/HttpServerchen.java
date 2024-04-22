@@ -139,8 +139,10 @@ public class HttpServerchen implements Closeable {
         final String metadataFile = rootDir + '/' + JarPresenter.METADATA_BASENAME;
 
         final Map<String, String> metadata = Utilities.readPropertyMapResource(metadataFile, classLoader);
-        if (metadata.containsKey(JarPresenter.PROP_STARTPAGE)) {
-            mStartPage = metadata.get(JarPresenter.PROP_STARTPAGE);
+
+        if (metadata.containsKey(JarPresenter.PROP_STARTPAGE) && !metadata.get(JarPresenter.PROP_STARTPAGE).isBlank()) {
+            mStartPage = "/" + metadata.get(JarPresenter.PROP_STARTPAGE).trim().replaceFirst("^/+", "");
+
         } else {
             mStartPage = "/index.html";
         }
