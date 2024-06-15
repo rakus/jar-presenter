@@ -114,15 +114,12 @@
                             <attributes>
                                 <jarp_version>${project.version}</jarp_version>
                                 <toc>left</toc>
-                                <icons>font</icons>
+                                <webfonts>false</webfonts>
                             </attributes>
                         </configuration>
                     </execution>
                 </executions>
             </plugin>
-
-
-
         </plugins>
     </build>
 
