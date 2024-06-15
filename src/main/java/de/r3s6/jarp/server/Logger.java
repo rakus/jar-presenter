@@ -20,7 +20,7 @@ final class Logger {
 
     private int mVerbosity;
 
-    private static class InstanceHolder {
+    private static final class InstanceHolder {
         static final Logger INSTANCE = new Logger();
     }
 

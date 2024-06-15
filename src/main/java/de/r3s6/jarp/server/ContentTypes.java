@@ -36,7 +36,7 @@ final class ContentTypes {
     private final Map<String, String> mTypeMap = new HashMap<>();
     private final Map<String, String> mEncodingMap = new HashMap<>();
 
-    private static class Holder {
+    private static final class Holder {
         private static ContentTypes sInstance = new ContentTypes();
     }
 
