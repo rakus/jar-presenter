@@ -10,8 +10,13 @@ import java.awt.BorderLayout;
 import java.awt.Desktop;
 import java.awt.EventQueue;
 import java.awt.GraphicsEnvironment;
+import java.awt.Toolkit;
+import java.awt.datatransfer.StringSelection;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.io.IOException;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -21,10 +26,16 @@ import javax.swing.JButton;
 import javax.swing.JEditorPane;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
+import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
+import javax.swing.JPopupMenu;
 import javax.swing.UIManager;
 import javax.swing.WindowConstants;
-import javax.swing.event.HyperlinkEvent;
+import javax.swing.text.AttributeSet;
+import javax.swing.text.Element;
+import javax.swing.text.Position;
+import javax.swing.text.html.HTML;
+import javax.swing.text.html.HTMLDocument;
 
 import de.r3s6.jarp.JarPresenter;
 import de.r3s6.jarp.Utilities;
@@ -230,12 +241,8 @@ public final class ServerCommand {
         msgPane.setEditable(false);
         msgPane.setBackground(new JLabel().getBackground());
 
-        // handle link events
-        msgPane.addHyperlinkListener(event -> {
-            if (event.getEventType().equals(HyperlinkEvent.EventType.ACTIVATED)) {
-                openBrowser(uri);
-            }
-        });
+        // handle mouse events
+        msgPane.addMouseListener(new HyperlinkMouseListener());
 
         final JButton stopButton = new JButton("Stop Server");
         stopButton.addActionListener(e -> System.exit(0));
@@ -258,6 +265,61 @@ public final class ServerCommand {
             Desktop.getDesktop().browse(uri);
         } catch (final IOException e) {
             reportError("Failed to open browser", e.toString());
+        }
+    }
+
+    private class UrlContextMenu extends JPopupMenu {
+
+        private static final long serialVersionUID = 1L;
+
+        UrlContextMenu(final URI uri) {
+            JMenuItem anItem = new JMenuItem("Open Link");
+            anItem.addActionListener(e -> openBrowser(uri));
+            add(anItem);
+
+            anItem = new JMenuItem("Copy Link");
+            anItem.addActionListener(e -> Toolkit.getDefaultToolkit().getSystemClipboard()
+                    .setContents(new StringSelection(uri.toString()), null));
+            add(anItem);
+        }
+    }
+
+    private final class HyperlinkMouseListener extends MouseAdapter {
+
+        @Override
+        public void mouseClicked(final MouseEvent event) {
+            final URI uri = getHyperlinkUri(event);
+            if (uri != null) {
+                if (event.getButton() == MouseEvent.BUTTON1) {
+                    openBrowser(uri);
+                } else if (event.getButton() == MouseEvent.BUTTON3) {
+                    new UrlContextMenu(uri).show(event.getComponent(), event.getX(), event.getY());
+                }
+            }
+        }
+
+        private URI getHyperlinkUri(final MouseEvent event) {
+            final JEditorPane editor = (JEditorPane) event.getSource();
+            final int pos = editor.getUI().viewToModel2D(editor, event.getPoint(), new Position.Bias[1]);
+            if (pos >= 0 && editor.getDocument() instanceof HTMLDocument) {
+                final HTMLDocument hdoc = (HTMLDocument) editor.getDocument();
+                final Element element = hdoc.getCharacterElement(pos);
+                if (element.getAttributes().getAttribute(HTML.Tag.A) != null) {
+                    final Object attribute = element.getAttributes().getAttribute(HTML.Tag.A);
+                    if (attribute instanceof AttributeSet) {
+                        final AttributeSet set = (AttributeSet) attribute;
+                        final String href = (String) set.getAttribute(HTML.Attribute.HREF);
+                        if (href != null) {
+                            try {
+                                return new URI(href);
+                            } catch (final URISyntaxException e) {
+                                System.err.println("Invalid URI: \"" + href + "\": " + e.toString());
+                            }
+                        }
+                    }
+                }
+            }
+            return null;
         }
     }
 
