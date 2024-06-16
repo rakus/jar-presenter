@@ -5,6 +5,12 @@ A tool to package a web-based presentation into a executable jar with a tiny
 HTTP server. When executed, the HTTP server is started to serve the
 presentation.
 
+![GUI](popup.png)
+
+The Jar Presenter requires Java 11 or newer.
+Note that earlier releases of Java 11 had a bug and were not able to open a
+browser on Linux. In that case copy-paste the URL to your running browser.
+
 ## Features
 
 ### Server
@@ -17,12 +23,12 @@ HTTP server and serves the presentation included in the jar.
 The minimalistic HTTP server
 * does not implement any security
 * assumes a well behaving client (e.g. a "standard" browser)
-* binds to localhost, hence only accepts request from local machine
+* binds to localhost, hence is only reachable from the local machine
 
 ---
 
 By default a small GUI dialog is opened to show the server address and to
-stop the server. Use `-t` to use terminal only.
+stop the server (see above). Use `-t` to use terminal only.
 
 If requested with `-b` the default web browser is started automatically and
 will show the presentation.
@@ -81,7 +87,7 @@ build - build a NEW presentation jar for given presentation
 ## The Presentation
 
 The presentation could be any static content that is deliverable from web
-server, but it **needs** a start page.
+server, but it _needs_ a start page.
 
 By default the start page is called `index.html`. If the start page has a
 different name, a file called `jarp-metadata.properties` can be created to
@@ -97,28 +103,6 @@ start-page=/Presentation.html
 
 When using the sub command `build`, the values of the options `-i` and `-t`
 are used to create this file.
-
-### Content Types
-
-The content type of delivered files are determined by the file extension.
-The most important are:
-
-* `html` --> `text/html`
-* `css` --> `text/css`
-* `js` --> `text/javascript`
-* `png` --> `image/png`
-* `gif` --> `image/gif`
-* `jpg` and `jpeg` --> `image/jpeg`
-* `svg` --> `image/svg+xml`;
-* `woff` --> `font/woff`
-* `woff2` --> `font/woff2`
-* `ttf` --> `font/sfnt`
-
-The full list can be found at
-`src/main/resources/de/r3s6/jarp/server/content-types.properties`.
-
-For content with unknown file extension the type `application/octet-stream` is
-used.
 
 
 ## Building Jar-Presenter
