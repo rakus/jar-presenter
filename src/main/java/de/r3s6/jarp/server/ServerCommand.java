@@ -20,6 +20,7 @@ import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import javax.swing.Icon;
 import javax.swing.JButton;
@@ -230,8 +231,7 @@ public final class ServerCommand {
 
         String title = "";
         if (presentationTitle != null) {
-            // TODO: HTML-escape the title string
-            title = "<b>" + presentationTitle + "</b><hr/>";
+            title = "<b>" + escapeHtml(presentationTitle) + "</b><hr/>";
         }
 
         final JEditorPane msgPane = new JEditorPane("text/html",
@@ -266,6 +266,20 @@ public final class ServerCommand {
         } catch (final IOException e) {
             reportError("Failed to open browser", e.toString());
         }
+    }
+
+    /**
+     * Simple HTML escape function.
+     *
+     * @param text text to escape.
+     * @return HTML-escaped text
+     */
+    static String escapeHtml(final String text) {
+        // CSOFF: MagicNumber
+        return text.chars()
+                .mapToObj(c -> c > 127 || "\"'<>&".indexOf(c) >= 0 ? "&#" + c + ";" : Character.toString(c))
+                .collect(Collectors.joining());
+        // CSON: MagicNumber
     }
 
     private class UrlContextMenu extends JPopupMenu {
