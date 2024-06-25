@@ -321,14 +321,39 @@ public class HttpServerchen implements Closeable {
         final List<String> lines = new ArrayList<>();
         String line;
         boolean firstLine = true;
+        int linesRead = 0;
+
+        HttpRequest.Builder builder = null;
+
         while ((line = br.readLine()) != null) {
             LOGGER.logRequestLine(line);
-            if (line.isBlank()) {
-                // Server should ignore one empty line before the request.
-                if (!firstLine) {
-                    break;
-                }
+            if (line.isBlank() && !firstLine) {
+                break;
             } else {
+                linesRead++;
+                if (linesRead == 1) {
+                    // parse the HTTP Request
+                    builder = new HttpRequest.Builder();
+
+                    final String[] requestParts = line.split(" ");
+                    validateRequest(line, requestParts);
+
+                    builder.method(requestParts[0])
+                            .path(URLDecoder.decode(requestParts[1], StandardCharsets.UTF_8))
+                            .version(requestParts[2]);
+                } else {
+                    // parse a HTTP header
+                    final int colonIdx = line.indexOf(":");
+                    if (colonIdx <= 0) {
+                        throw new InvalidRequestException("Invalid request header line: " + line);
+                    }
+                    final String name = line.substring(0, colonIdx).trim();
+                    if (name.isEmpty()) {
+                        throw new InvalidRequestException("Invalid request header line: " + line);
+                    }
+                    final String value = line.substring(colonIdx + 1).trim();
+                    builder.addHeader(name, value);
+                }
                 lines.add(line);
             }
             firstLine = false;
@@ -339,34 +364,12 @@ public class HttpServerchen implements Closeable {
             return null;
         }
 
-        if (lines.size() < 2) {
-            LOGGER.error("request to short: " + lines);
+        if (builder == null) {
+            LOGGER.debug("No Request received");
             return null;
         }
 
-        final HttpRequest.Builder builder = new HttpRequest.Builder();
-
-        final String[] requestParts = lines.get(0).split(" ");
-        validateRequest(lines.get(0), requestParts);
-
-        builder.method(requestParts[0])
-                .path(URLDecoder.decode(requestParts[1], StandardCharsets.UTF_8))
-                .version(requestParts[2]);
-
         builder.host(host);
-
-        for (final String headerLine : lines.subList(1, lines.size())) {
-            final int colonIdx = headerLine.indexOf(":");
-            if (colonIdx <= 0) {
-                throw new InvalidRequestException("Invalid request header line: " + headerLine);
-            }
-            final String name = headerLine.substring(0, colonIdx).trim();
-            if (name.isEmpty()) {
-                throw new InvalidRequestException("Invalid request header line: " + headerLine);
-            }
-            final String value = headerLine.substring(colonIdx + 1).trim();
-            builder.addHeader(name, value);
-        }
 
         return builder.build();
     }
