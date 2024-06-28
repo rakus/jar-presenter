@@ -36,7 +36,7 @@ will show the presentation.
 **Help output:**
 
 ```
-$ java -jar jar-presenter-0.1.0-SNAPSHOT.jar server --help
+$ java -jar jar-presenter-0.1.0.jar server --help
 server - starts a web server to serve the presentation
       USAGE: java -jar jar-presenter.jar server [-b] [-v] [-t] [port]
         -b       immediately start the (default) browser
@@ -53,7 +53,7 @@ given directory. The directory is created if it doesn't exist.
 **Help output:**
 
 ```
-$ java -jar jar-presenter-0.1.0-SNAPSHOT.jar extract --help
+$ java -jar jar-presenter-0.1.0.jar extract --help
 extract - extract the contained presentation to the given directory
       USAGE: java -jar jar-presenter.jar extract [-f] <target-dir>
         -f   Overwrite existing files.
@@ -68,7 +68,7 @@ them with a presentation on disk into a new jar.
 **Help output:**
 
 ```
-$ java -jar jar-presenter-0.1.0-SNAPSHOT.jar build --help
+$ java -jar jar-presenter-0.1.0.jar build --help
 build - build a NEW presentation jar for given presentation
       USAGE: java -jar jar-presenter.jar build [-f] [-s <start-page>] [-t <title>] <new-jar-name> <presentation-dir>
         -f       overwrite existing jar
