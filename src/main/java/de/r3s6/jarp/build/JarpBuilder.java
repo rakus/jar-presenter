@@ -135,7 +135,12 @@ public class JarpBuilder {
         if (initialHtml != null) {
             props.setProperty(JarPresenter.PROP_STARTPAGE, initialHtml);
         } else if (!props.containsKey(JarPresenter.PROP_STARTPAGE)) {
-            props.setProperty(JarPresenter.PROP_STARTPAGE, "/index.html");
+            final String startPage = getStartPage(presentationDir);
+            if (startPage != null) {
+                props.setProperty(JarPresenter.PROP_STARTPAGE, startPage);
+            } else {
+                props.setProperty(JarPresenter.PROP_STARTPAGE, "/index.html");
+            }
         }
 
         final Path startPage = Paths.get(presentationDir, props.getProperty(JarPresenter.PROP_STARTPAGE));
@@ -147,6 +152,32 @@ public class JarpBuilder {
         System.out.println("Metadata: " + props);
 
         return props;
+    }
+
+    private String getStartPage(final String presentationDir) {
+
+        final File[] files = Paths.get(presentationDir).toFile()
+                .listFiles(f -> f.isFile() && f.getName().toLowerCase().endsWith(".html"));
+
+        if (files.length == 1) {
+            return files[0].getName();
+        } else if (files.length == 0) {
+            System.err.println("No html page found in " + presentationDir);
+            System.exit(1);
+        } else if (files.length > 1) {
+            for (final File file : files) {
+                if ("index.html".equals(file.getName())) {
+                    return file.getName();
+                }
+            }
+            // No file 'index.html'
+            System.err.println("Multiple possible start pages found. Use '-s' to name one");
+            for (final File file : files) {
+                System.err.println(" - " + file.getName());
+            }
+            System.exit(1);
+        }
+        return null;
     }
 
     private Properties loadMetadataProps(final Path metadataFile) throws IOException {

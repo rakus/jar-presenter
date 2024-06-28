@@ -39,7 +39,7 @@ presentation.
 
 *Command Line Usage*
 
-`java -jar jar-presenter-{jarp_version}.jar build [-f] [-t title] [-i start-page] jar-name presentation-dir`
+`java -jar jar-presenter-{jarp_version}.jar build [-f] [-t title] [-s start-page] jar-name presentation-dir`
 
 `-f`::
 Overwrite a already existing jar file.
@@ -47,8 +47,8 @@ Overwrite a already existing jar file.
 `-t title`::
 Title of presentation. Used e.g. in server popup.
 
-`-i start-page`::
-Use the given HTML file as the start page (instead of `index.html`).
+`-s start-page`::
+Use the given HTML file as the start page. Only needed if `presentation-dir` contains more than one HTML file.
 
 `jar-name`::
 Name of the new jar to create.
@@ -118,25 +118,28 @@ Directory to write the presentation. Created if not existent.
 == THE PRESENTATION
 
 The presentation can be anything, even just a simple HTML page (like this).
-The only thing is that it needs is a start page.
-By default the file `index.html` is chosen. If the start page is different
-a file name `jarp-metadata.properties` can be created. This can contain two
-entries:
 
-* `title`: The title of the presentation.
-* `start-page`: The file name of the start page.
+The start page and the title of the presentation can be defined in the file
+`jarp-metadata.properties`.
 
-If the start page should be `Presentation.html` and the title of the
+E.g. If the start page should be `Presentation.html` and the title of the
 presentation is "My Presentation", `jarp-metadata.properties` contains:
 
 [source]
 ----
 title=My Presentation
-start-page=/Presentation.html
+start-page=Presentation.html
 ----
 
-When using the sub command `build`, the values of the options `-i` and `-t`
-are used to create this file.
+The build sub-command uses an existing `jarp-metadata.properties`, but it's
+content can be overwritten with the options `-t` and `-s`.
+
+If no start-page is given (neither via `jarp-metadata` nor option `-s`), the
+build sub-command checks the presentation directory for either a `index.html`
+or _exactly_ one HTML file.
+
+Finally the build sub-command adds a new (or possibly updated)
+`jar-metadata.properties` to the new jar.
 
 == INSTALLATION
 
@@ -161,7 +164,7 @@ using
 
 [source,bash]
 ----
-$ jarp -t "Cool talk" -i cool-talk.html cool-talk.jar cool-talk/
+$ jarp -t "Cool talk" -s cool-talk.html cool-talk.jar cool-talk/
 ----
 
 == AUTHOR

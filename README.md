@@ -70,40 +70,43 @@ them with a presentation on disk into a new jar.
 ```
 $ java -jar jar-presenter-0.1.0-SNAPSHOT.jar build --help
 build - build a NEW presentation jar for given presentation
-      USAGE: java -jar jar-presenter.jar build [-f] [-i <start-page>] [-t <title>] <new-jar-name> <presentation-dir>
-        -i <start-page>
-                 defines the start page of the presentation to be used instead
-                 of index.html
+      USAGE: java -jar jar-presenter.jar build [-f] [-s <start-page>] [-t <title>] <new-jar-name> <presentation-dir>
+        -f       overwrite existing jar
+        -s <start-page>
+                 defines the start page of the presentation. Only needed
+                 when presentation-dir contains more than one html file.
         -t <title>
                  title of presentation. Used e.g. in server popup.
-        -f       overwrite existing jar
         new-jar-name
                  name of the new jar to create
         presentation-dir
                  directory of the presentation to include in new jar
 ```
 
-
 ## The Presentation
 
-The presentation could be any static content that is deliverable from web
-server, but it _needs_ a start page.
+The presentation can be anything, even just a simple HTML page (like this).
 
-By default the start page is called `index.html`. If the start page has a
-different name, a file called `jarp-metadata.properties` can be created to
-define the start page with the entry `start-page`.
+The start page and the title of the presentation can be defined in the file
+`jarp-metadata.properties`.
 
-If the start page should be `Presentation.html` and the title of the
+E.g. If the start page should be `Presentation.html` and the title of the
 presentation is "My Presentation", `jarp-metadata.properties` contains:
 
 ```
 title=My Presentation
-start-page=/Presentation.html
+start-page=Presentation.html
 ```
 
-When using the sub command `build`, the values of the options `-i` and `-t`
-are used to create this file.
+The build sub-command uses an existing `jarp-metadata.properties`, but it's
+content can be overwritten with the options `-t` and `-s`.
 
+If no start-page is given (neither via `jarp-metadata` nor option `-s`), the
+build sub-command checks the presentation directory for either a `index.html`
+or _exactly_ one HTML file.
+
+Finally the build sub-command adds a new (or possibly updated)
+`jar-metadata.properties` to the new jar.
 
 ## Building Jar-Presenter
 
